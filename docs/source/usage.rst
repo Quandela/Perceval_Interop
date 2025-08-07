@@ -16,7 +16,12 @@ Alternatively, if you are interested in contributing to the project - you can cl
 
    (venv) $ git clone https://github.com/quandela/Perceval_Interop
    (venv) $ cd Perceval_Interop
-   (venv) $ pip install . # or pip install -e . for developers or pip install .[all] to install bridges
+   (venv) $ pip install . # or pip install -e . for developers
+   (venv) $ pip install .[qiskit_bridge] # to install with qiskit and seaborn
+   (venv) $ pip install .[qutip_bridge] # to install with qutip
+   (venv) $ pip install .[myqlm_bridge] # to install with myqlm
+   (venv) $ pip install .[cqasm_bridge] # to install with cqasm
+   (venv) $ pip install .[all] # to install all of the above bridges
 
 Tutorial
 --------

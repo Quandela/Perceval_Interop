@@ -1,10 +1,10 @@
 
-[![GitHub release](https://img.shields.io/github/v/release/Quandela/Perceval-Interop.svg?style=plastic)](https://github.com/Quandela/Perceval-Interop/releases/latest)
+[![GitHub release](https://img.shields.io/github/v/release/Quandela/Perceval_Interop.svg?style=plastic)](https://github.com/Quandela/Perceval_Interop/releases/latest)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/perceval-interop?style=plastic)
-[![CI](https://github.com/Quandela/Perceval-Interop/actions/workflows/python-publish.yml/badge.svg)](https://github.com/Quandela/Perceval-Interop/actions/workflows/python-publish.yml)
+[![CI](https://github.com/Quandela/Perceval_Interop/actions/workflows/python-publish.yml/badge.svg)](https://github.com/Quandela/Perceval-Interop/actions/workflows/python-publish.yml)
 
-[![CI](https://github.com/Quandela/Perceval-Interop/actions/workflows/autotests.yml/badge.svg)](https://github.com/Quandela/Perceval-Interop/actions/workflows/autotests.yml)
-[![CI](https://github.com/Quandela/Perceval-Interop/actions/workflows/build-and-deploy-docs.yml/badge.svg)](https://github.com/Quandela/Perceval-Interop/actions/workflows/build-and-deploy-docs.ym)
+[![CI](https://github.com/Quandela/Perceval_Interop/actions/workflows/autotests.yml/badge.svg)](https://github.com/Quandela/Perceval_Interop/actions/workflows/autotests.yml)
+[![CI](https://github.com/Quandela/Perceval_Interop/actions/workflows/build-and-deploy-docs.yml/badge.svg)](https://github.com/Quandela/Perceval_Interop/actions/workflows/build-and-deploy-docs.yml)
 
 # Perceval-Interop <a href="https://perceval.quandela.net" target="_blank"> <img src="logo-perceval.png" width="50" height="50"> </a>
 
