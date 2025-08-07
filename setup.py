@@ -17,15 +17,14 @@ package_list = [os.path.dirname(p).replace('\\', '.') for p in glob('perceval_in
 setuptools.setup(
     name="perceval-interop",
     author="quandela",
-    author_email="",
     description="Interoperability packages between Quantum Computing Framework",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="",
+    url="https://github.com/Quandela/Perceval_Interop",
     project_urls={
-        "Documentation": "",
-        "Source": "",
-        "Tracker": ""
+        "Documentation": "https://perceval.quandela.net/interopdocs/",
+        "Source": "https://github.com/Quandela/Perceval_Interop",
+        "Tracker": "https://github.com/Quandela/Perceval_Interop/issues"
     },
     classifiers=[
         "Programming Language :: Python :: 3.9",
