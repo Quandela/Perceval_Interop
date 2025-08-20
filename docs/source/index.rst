@@ -9,7 +9,7 @@
    Perceval, the Story of the Grail – Chrétien de Troyes (circa 1180)
 
 Welcome to the Perceval Interoperability package documentation!
-======================================
+===============================================================
 
 Perceval_Interop is designed to facilitate a bridge between Perceval, a photonic quantum
 computing framework, and several leading gate-based frameworks through an easy-to-use
