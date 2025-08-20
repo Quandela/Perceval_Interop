@@ -71,5 +71,5 @@ quantum state vectors across different representations.
    reference/qiskit
    reference/myqlm
    reference/cqasm
-   reference/statevector
+   reference/statevectorconverter
    reference/circuitgraph

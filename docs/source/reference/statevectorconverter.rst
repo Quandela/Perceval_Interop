@@ -1,6 +1,6 @@
 StatevectorConverter
 ^^^^^^^^^^^^^^^^
 
-.. autoclass:: perceval_interop.qiskit.converter_statevector.QiskitConverter
+.. autoclass:: perceval_interop.qiskit.converter_statevector.StatevectorConverter
    :members:
    :inherited-members:
