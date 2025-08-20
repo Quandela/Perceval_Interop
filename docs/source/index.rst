@@ -8,8 +8,40 @@
 
    Perceval, the Story of the Grail – Chrétien de Troyes (circa 1180)
 
-Welcome to the Interop documentation!
+Welcome to the Perceval Interoperability package documentation!
 ======================================
+
+Perceval_Interop is designed to facilitate a bridge between Perceval, a photonic quantum
+computing framework, and several leading gate-based frameworks through an easy-to-use
+python API.
+
+It provides converters to translate gate-based quantum circuits from various
+frameworks into Perceval’s linear optical circuits using dual-rail encoding.
+In addition to universal circuit translation, it enables the conversion of
+quantum state vectors across different representations.
+
+**Supported Frameworks**
+-------------------------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 25 50
+
+   * - Framework
+     - Type
+     - Description
+   * - **Qiskit**
+     - Gate Circuits, Quantum States
+     - IBM's open-source quantum computing framework
+   * - **myQLM**
+     - Gate Circuits
+     - Atos Quantum Learning Machine framework
+   * - **cQASM**
+     - Gate Circuits
+     - Common Quantum Assembly Language, parsed by the ``libqasm`` library
+   * - **QuTiP**
+     - Quantum States
+     - Quantum state vector conversion and manipulation
 
 .. toctree::
    :caption: Documentation
@@ -30,9 +62,3 @@ Welcome to the Interop documentation!
    notebooks/Resources_estimator
    notebooks/Myqlm_converter
    notebooks/Cqasm_converter
-
-
-.. toctree::
-   :caption: Community
-
-   bibliography
