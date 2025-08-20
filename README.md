@@ -6,10 +6,10 @@
 [![CI](https://github.com/Quandela/Perceval_Interop/actions/workflows/autotests.yml/badge.svg)](https://github.com/Quandela/Perceval_Interop/actions/workflows/autotests.yml)
 [![CI](https://github.com/Quandela/Perceval_Interop/actions/workflows/build-and-deploy-docs.yml/badge.svg)](https://github.com/Quandela/Perceval_Interop/actions/workflows/build-and-deploy-docs.yml)
 
-# Perceval-Interop <a href="https://perceval.quandela.net" target="_blank"> <img src="logo-perceval.png" width="50" height="50"> </a>
+# Perceval_Interop <a href="https://perceval.quandela.net" target="_blank"> <img src="logo-perceval.png" width="50" height="50"> </a>
 
 
-Perceval-Interop is designed to facilitate a bridge between Perceval, a photonic quantum
+Perceval_Interop is designed to facilitate a bridge between Perceval, a photonic quantum
 computing framework, and several leading gate-based frameworks through a python API.
 
 It provides converters to translate gate-based quantum circuits from various frameworks
