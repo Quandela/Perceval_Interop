@@ -1,6 +1,6 @@
 CQASMConverter
 ^^^^^^^^^^^^^^^
 
-.. autoclass:: perceval_interop.qiskit.cqasm_converter.CQASMConverter
+.. autoclass:: perceval_interop.cqasm.cqasm_converter.CQASMConverter
    :members:
    :inherited-members:

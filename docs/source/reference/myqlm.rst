@@ -1,6 +1,6 @@
 MyQlMConverter
 ^^^^^^^^^^^^^^^
 
-.. autoclass:: perceval_interop.qiskit.myqlm_converter.MyQLMConverter
+.. autoclass:: perceval_interop.myqlm.myqlm_converter.MyQLMConverter
    :members:
    :inherited-members:
