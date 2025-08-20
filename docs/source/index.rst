@@ -48,8 +48,8 @@ quantum state vectors across different representations.
    :maxdepth: 2
    :hidden:
 
-   usage
-   legacy
+   getting_started
+
 
 
 .. toctree::
