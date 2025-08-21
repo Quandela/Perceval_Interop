@@ -101,9 +101,13 @@ class CQASMConverter(AGateConverter):
         parameter = None
 
         # Match other statement patterns
-        if num_operands == 2:
+        if num_operands == 1 and len(statement.gate.parameters):
+            # Note: statement.gate.parameters is of type ConstFloat, but changes to MultiValueBase from 1.1.0
+            # get parameters for 1 qubit gates.
+            parameter = statement.gate.parameters[0].value
+        elif num_operands == 2:
             if type(statement.operands[1]) is self._cqasm.values.ConstFloat:
-                # Statement pattern is OP(r) q
+                # Statement pattern is OP(r) q. This case appears when converting 1 qubit gates from v1.
                 parameter = statement.operands[1].value
             else:
                 # Statement pattern is OP q, q
@@ -320,9 +324,6 @@ class CQASMConverter(AGateConverter):
                         raise ConversionUnsupportedFeatureError(
                             f"Unsupported 2-qubit gate { instruction[0] }")
 
-                #statement = cqasm.semantic.Instruction()
-                # statement = cqasm.semantic.Instruction()
-                # statement.name = f'{ instruction[0] }'
                 operands = []
                 for qubit_index in ins_qubits:
                     index = cqasm.values.IndexRef(
@@ -331,12 +332,11 @@ class CQASMConverter(AGateConverter):
                     index.indices.append(cqasm.values.ConstInt(qubit_index))
                     # statement.operands.append(index)
                     operands.append(index)
-                params = []
                 if theta is not None:
                     angle = cqasm.values.ConstFloat(value=theta)
-                    # statement.operands.append(angle)
-                    # params.append(angle)
-                    operands.append(angle)
+                    operands.append(angle)  # I append this to operands.
+                    # TODO: maybe this can be set directly to Gate() obj.
+                    #  Doing that should remove if block in L108
 
                 statement = cqasm.semantic.GateInstruction(
                     gate=cqasm.semantic.Gate(f"{instruction[0]}"),
