@@ -92,7 +92,7 @@ class CQASMConverter(AGateConverter):
 
     def _get_gate_info(self, statement):
         # For each CQASM statement -> gate information - gate name, qubit position, parameter are returned
-        gate_name = statement.name
+        gate_name = statement.gate.name
         num_operands = len(statement.operands)
 
         # For now, assume the statement pattern is OP q
@@ -320,17 +320,28 @@ class CQASMConverter(AGateConverter):
                         raise ConversionUnsupportedFeatureError(
                             f"Unsupported 2-qubit gate { instruction[0] }")
 
-                statement = cqasm.semantic.Instruction()
-                statement.name = f'{ instruction[0] }'
+                #statement = cqasm.semantic.Instruction()
+                # statement = cqasm.semantic.Instruction()
+                # statement.name = f'{ instruction[0] }'
+                operands = []
                 for qubit_index in ins_qubits:
                     index = cqasm.values.IndexRef(
                         variable=cqasm.semantic.Variable(name = 'q'))
                     index.indices = cqasm.values.MultiConstInt()
                     index.indices.append(cqasm.values.ConstInt(qubit_index))
-                    statement.operands.append(index)
+                    # statement.operands.append(index)
+                    operands.append(index)
+                params = []
                 if theta is not None:
                     angle = cqasm.values.ConstFloat(value=theta)
-                    statement.operands.append(angle)
+                    # statement.operands.append(angle)
+                    # params.append(angle)
+                    operands.append(angle)
+
+                statement = cqasm.semantic.GateInstruction(
+                    gate=cqasm.semantic.Gate(f"{instruction[0]}"),
+                    operands=operands,
+                )
                 ast.block.statements.append(statement)
             except ValueError:
                 print("An error in parsing the cQASM v1 file.")
