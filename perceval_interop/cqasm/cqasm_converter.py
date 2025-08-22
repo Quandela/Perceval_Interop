@@ -194,6 +194,13 @@ class CQASMConverter(AGateConverter):
         else:
             raise ConversionSyntaxError(f"Missing version number")
 
+    def _expand_multitarget_gates(self, source_string):
+        # TODO: Implement.
+        # TODO: Doubt - how does it affect multi control gate error check? :test_converter_unsupported_gates
+        pass
+
+
+
     def _convert_from_string(
             self,
             source: str,
@@ -221,8 +228,12 @@ class CQASMConverter(AGateConverter):
         major, minor = CQASMConverter.check_version(source_string)
         if major == 3:
             get_logger().debug("Parsing cQASM v3 description", channel.general)
+            source_string = self._expand_multitarget_gates(source_string)
             ast = self._cqasm.Analyzer().analyze_string(
                 source_string)
+            # TODO: this conversion fails from libqasmv1.2.x as analyzer
+            #  restricts multi target/control parsing. Qubits operand indices need to have
+            #  identical size - need to find a better fix as cqasm.v3x supports multi-target qubit
         elif major == 1:
             get_logger().debug("Converting cQASM v1 to v3", channel.general)
             ast = self._v3_ast_from_v1_source(source_string.split('\n'))
@@ -330,18 +341,14 @@ class CQASMConverter(AGateConverter):
                         variable=cqasm.semantic.Variable(name = 'q'))
                     index.indices = cqasm.values.MultiConstInt()
                     index.indices.append(cqasm.values.ConstInt(qubit_index))
-                    # statement.operands.append(index)
                     operands.append(index)
                 if theta is not None:
                     angle = cqasm.values.ConstFloat(value=theta)
-                    operands.append(angle)  # I append this to operands.
-                    # TODO: maybe this can be set directly to Gate() obj.
-                    #  Doing that should remove if block in L108
+                    operands.append(angle)
 
                 statement = cqasm.semantic.GateInstruction(
                     gate=cqasm.semantic.Gate(f"{instruction[0]}"),
-                    operands=operands,
-                )
+                    operands=operands)  # operand=[qubits, parameters]
                 ast.block.statements.append(statement)
             except ValueError:
                 print("An error in parsing the cQASM v1 file.")
