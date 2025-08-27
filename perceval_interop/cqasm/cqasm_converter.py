@@ -162,6 +162,7 @@ class CQASMConverter(AGateConverter):
         :type ast: a Program object, as returned by the cQASM parser
         :param use_postselection: when True, uses a `postprocessed CNOT`
         as the last gate. Otherwise, uses only `heralded CNOT`
+
         :return: the converted processor
         """
         if isinstance(ast, str):

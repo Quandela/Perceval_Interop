@@ -17,7 +17,7 @@ into Perceval's linear optical circuits using dual rail encoding. Currently
 supported frameworks include:
 
 - Quantum gate circuit conversion from **Qiskit**, **myQLM**, and **cQASM**.
-- Quantum states conversion from **Qutip**.
+- Quantum states conversion from **Qutip** and **Qiskit**.
 
 
 # Installation

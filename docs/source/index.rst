@@ -1,4 +1,4 @@
-:github_url: https://github.com/Quandela/Interop
+:github_url: https://https://github.com/Quandela/Perceval_Interop
 
 .. figure:: _static/img/perceval.jpg
    :align: right

@@ -38,4 +38,4 @@ The following is a minimal example demonstrating how to convert a simple circuit
 >>> perceval_processor = qiskit_convertor.convert(qc)  # converted 2 mode LO circuit which can be used for photonic quantum computing
 
 For more examples (including other frameworks) and detailed explanations, refer to the notebooks in the Tutorials section. If you want to learn
-how to install and use Perceval, please read: https://github.com/Quandela/Perceval?tab=readme-ov-file#perceval---
+how to install and use Perceval, please read: https://github.com/Quandela/Perceval_Interop
