@@ -121,11 +121,6 @@ class CQASMConverter(AGateConverter):
         elif num_operands >= 4:
             raise ConversionUnsupportedFeatureError(f"Statement with unsupported number of operands, n = { num_operands }")
 
-        num_controls = len(controls)
-        if num_controls >= 2:
-            raise ConversionUnsupportedFeatureError(
-                f"Gate { gate_name } has more than one control (n = { num_controls })")
-
         return gate_name, controls, targets, parameter
 
     def _get_gate_sequence(self, ast) -> list[list]:
@@ -194,13 +189,6 @@ class CQASMConverter(AGateConverter):
         else:
             raise ConversionSyntaxError(f"Missing version number")
 
-    def _expand_multitarget_gates(self, source_string):
-        # TODO: Implement.
-        # TODO: Doubt - how does it affect multi control gate error check? :test_converter_unsupported_gates
-        pass
-
-
-
     def _convert_from_string(
             self,
             source: str,
@@ -228,12 +216,7 @@ class CQASMConverter(AGateConverter):
         major, minor = CQASMConverter.check_version(source_string)
         if major == 3:
             get_logger().debug("Parsing cQASM v3 description", channel.general)
-            source_string = self._expand_multitarget_gates(source_string)
-            ast = self._cqasm.Analyzer().analyze_string(
-                source_string)
-            # TODO: this conversion fails from libqasmv1.2.x as analyzer
-            #  restricts multi target/control parsing. Qubits operand indices need to have
-            #  identical size - need to find a better fix as cqasm.v3x supports multi-target qubit
+            ast = self._cqasm.Analyzer().analyze_string(source_string)
         elif major == 1:
             get_logger().debug("Converting cQASM v1 to v3", channel.general)
             ast = self._v3_ast_from_v1_source(source_string.split('\n'))
