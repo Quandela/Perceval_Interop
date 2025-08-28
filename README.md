@@ -6,7 +6,7 @@
 [![CI](https://github.com/Quandela/Perceval_Interop/actions/workflows/autotests.yml/badge.svg)](https://github.com/Quandela/Perceval_Interop/actions/workflows/autotests.yml)
 [![CI](https://github.com/Quandela/Perceval_Interop/actions/workflows/build-and-deploy-docs.yml/badge.svg)](https://github.com/Quandela/Perceval_Interop/actions/workflows/build-and-deploy-docs.yml)
 
-# Perceval_Interop <a href="https://perceval.quandela.net" target="_blank"> <img src="logo-perceval.png" width="50" height="50"> </a>
+# Perceval_Interop <a href="https://perceval.quandela.net" target="_blank"> <img src="https://raw.githubusercontent.com/Quandela/Perceval_Interop/main/logo-perceval.png" width="50" height="50"> </a>
 
 
 Perceval_Interop is designed to facilitate a bridge between Perceval, a photonic quantum
@@ -72,7 +72,8 @@ pytest --cov=perceval-interop
 * The [Community Forum](https://perceval.quandela.net/forum)
 
 #
-[<img src="logo-quandela.png" width="300" height=auto>](https://www.quandela.com/)
+
+[<img src="https://raw.githubusercontent.com/Quandela/Perceval_Interop/main/logo-quandela.png" width="300" height=auto>](https://www.quandela.com/)
 
 [![Twitter Follow](https://img.shields.io/twitter/follow/Quandela_SAS?style=social)](https://twitter.com/Quandela_SAS)
 [![YouTube Channel Subscribers](https://img.shields.io/youtube/channel/subscribers/UCl5YMpSqknJ1n-IT-XWfLsQ?style=social)](https://www.youtube.com/channel/UCl5YMpSqknJ1n-IT-XWfLsQ)
