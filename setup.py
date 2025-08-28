@@ -6,7 +6,7 @@ from glob import glob
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-QISKIT_BRIDGE_PKGS = ["qiskit~=1.3.1", "seaborn~=0.13"]
+QISKIT_BRIDGE_PKGS = ["qiskit~=2.1.2", "seaborn~=0.13"]
 QUTIP_BRIDGE_PKGS = ["qutip~=5.0.4"]
 MYQLM_BRIDGE_PKGS = ["myqlm~=1.11.3"] # 10.4
 CQASM_BRIDGE_PKGS = ["libqasm==1.2.1"]  # libqasm is not stable enough to put ~=
