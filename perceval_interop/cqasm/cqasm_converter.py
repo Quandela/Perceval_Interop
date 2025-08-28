@@ -92,7 +92,7 @@ class CQASMConverter(AGateConverter):
 
     def _get_gate_info(self, statement):
         # For each CQASM statement -> gate information - gate name, qubit position, parameter are returned
-        gate_name = statement.name
+        gate_name = statement.gate.name
         num_operands = len(statement.operands)
 
         # For now, assume the statement pattern is OP q
@@ -101,9 +101,13 @@ class CQASMConverter(AGateConverter):
         parameter = None
 
         # Match other statement patterns
-        if num_operands == 2:
+        if num_operands == 1 and len(statement.gate.parameters):
+            # Note: statement.gate.parameters is of type ConstFloat, but changes to MultiValueBase from 1.1.0
+            # get parameters for 1 qubit gates.
+            parameter = statement.gate.parameters[0].value
+        elif num_operands == 2:
             if type(statement.operands[1]) is self._cqasm.values.ConstFloat:
-                # Statement pattern is OP(r) q
+                # Statement pattern is OP(r) q. This case appears when converting 1 qubit gates from v1.
                 parameter = statement.operands[1].value
             else:
                 # Statement pattern is OP q, q
@@ -116,11 +120,6 @@ class CQASMConverter(AGateConverter):
             parameter = statement.operands[2].value
         elif num_operands >= 4:
             raise ConversionUnsupportedFeatureError(f"Statement with unsupported number of operands, n = { num_operands }")
-
-        num_controls = len(controls)
-        if num_controls >= 2:
-            raise ConversionUnsupportedFeatureError(
-                f"Gate { gate_name } has more than one control (n = { num_controls })")
 
         return gate_name, controls, targets, parameter
 
@@ -163,6 +162,7 @@ class CQASMConverter(AGateConverter):
         :type ast: a Program object, as returned by the cQASM parser
         :param use_postselection: when True, uses a `postprocessed CNOT`
         as the last gate. Otherwise, uses only `heralded CNOT`
+
         :return: the converted processor
         """
         if isinstance(ast, str):
@@ -217,8 +217,7 @@ class CQASMConverter(AGateConverter):
         major, minor = CQASMConverter.check_version(source_string)
         if major == 3:
             get_logger().debug("Parsing cQASM v3 description", channel.general)
-            ast = self._cqasm.Analyzer().analyze_string(
-                source_string)
+            ast = self._cqasm.Analyzer().analyze_string(source_string)
         elif major == 1:
             get_logger().debug("Converting cQASM v1 to v3", channel.general)
             ast = self._v3_ast_from_v1_source(source_string.split('\n'))
@@ -320,17 +319,20 @@ class CQASMConverter(AGateConverter):
                         raise ConversionUnsupportedFeatureError(
                             f"Unsupported 2-qubit gate { instruction[0] }")
 
-                statement = cqasm.semantic.Instruction()
-                statement.name = f'{ instruction[0] }'
+                operands = []
                 for qubit_index in ins_qubits:
                     index = cqasm.values.IndexRef(
                         variable=cqasm.semantic.Variable(name = 'q'))
                     index.indices = cqasm.values.MultiConstInt()
                     index.indices.append(cqasm.values.ConstInt(qubit_index))
-                    statement.operands.append(index)
+                    operands.append(index)
                 if theta is not None:
                     angle = cqasm.values.ConstFloat(value=theta)
-                    statement.operands.append(angle)
+                    operands.append(angle)
+
+                statement = cqasm.semantic.GateInstruction(
+                    gate=cqasm.semantic.Gate(f"{instruction[0]}"),
+                    operands=operands)  # operand=[qubits, parameters]
                 ast.block.statements.append(statement)
             except ValueError:
                 print("An error in parsing the cQASM v1 file.")

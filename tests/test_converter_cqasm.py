@@ -75,25 +75,6 @@ X q[0]
         CQASMConverter().convert(cqasm_program)
 
 
-def test_converter_unsupported_gates():
-    cqasm_program = """
-version 3
-qubit[3] q
-CNOT q[0:2], q[2]
-"""
-    # Caught early: two controls for one target
-    with pytest.raises(ConversionUnsupportedFeatureError):
-        CQASMConverter().convert(cqasm_program)
-
-    cqasm_program = """
-version 3
-qubit[3] q
-CR(pi / 2) q[1], q[0]
-"""
-    with pytest.raises(ConversionUnsupportedFeatureError):
-        CQASMConverter().convert(cqasm_program)
-
-
 def test_converter_bell_state():
     cqasm_program = """
 version 3
@@ -172,12 +153,24 @@ Z psi[0:1]
     assert tuple(pc.in_port_names) == \
         ("alice", "alice", "bob", "bob", "psi[0]", "psi[0]", "psi[1]", "psi[1]")
 
-
 def test_converter_multi_target_cnot():
     cqasm_program = """
 version 3
 qubit[3] q
 CNOT q[0], q[1:2]
+"""
+    # libqasm v1.2.x+ doesn't support multi-target CNOTs syntax of cqasm v3
+    with pytest.raises(ConversionSyntaxError):
+        CQASMConverter().convert(cqasm_program, use_postselection=False)
+
+
+def test_multi_cnot_same_target():
+    # multiple CNOTs with identical target needs to be written individually from libqamsv1.2.x
+    cqasm_program = """
+version 3
+qubit[3] q
+CNOT q[0], q[1]
+CNOT q[0], q[2]
 """
     pc = CQASMConverter().convert(cqasm_program, use_postselection=False)
     # Two heralded CNOTs sandwiched between PERMs
