@@ -17,7 +17,7 @@ package_list = [os.path.dirname(p).replace('\\', '.') for p in glob('perceval_in
 setuptools.setup(
     name="perceval-interop",
     author="quandela",
-    description="Interoperability packages between Quantum Computing Framework",
+    description="Interoperability packages between Perceval and other quantum computing frameworks",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/Quandela/Perceval_Interop",
@@ -36,7 +36,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     packages=package_list,
-    install_requires=['perceval-quandela~=0.13.1',
+    install_requires=['perceval-quandela~=1.0',
                       ],
     extras_require={
         "qiskit_bridge": QISKIT_BRIDGE_PKGS,

@@ -47,6 +47,8 @@ def version_highter_then(v1, v2):
                 return False
             elif v2[i] == charac:
                 continue
+            else:
+                return True
     return True
 
 
@@ -57,7 +59,7 @@ def keep_latest_versions(versions, mini=None):
     for one_version in versions:
         # major_version = re.match(r"v\d+", one_version).group()
         try:
-            major_version = re.match(r"v\d+\.(\d+)", one_version).groups()
+            major_version = re.match(r"v(\d+)\.(\d+)", one_version).groups()
         except AttributeError:
             major_version = "0.0.0"
         if "-" not in one_version:
@@ -76,7 +78,7 @@ REPO_PATH = Path(__file__).parent.parent.parent.resolve()
 
 repo = Repo(REPO_PATH)
 tags = [tag.name for tag in repo.tags]
-versions = keep_latest_versions(tags, "v0.1")
+versions = keep_latest_versions(tags, "v1.0")
 versions_string = "".join([f"({one_version})|" for one_version in versions])[:-1]
 versions_regex = re.compile(f"^{versions_string}$")
 
