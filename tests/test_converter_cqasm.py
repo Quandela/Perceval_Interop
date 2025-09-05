@@ -22,6 +22,7 @@
 # SOFTWARE.
 
 import pytest
+from exqalibur import FockState
 
 try:
     import cqasm
@@ -89,9 +90,9 @@ CNOT q[0], q[1]
     assert len(pc.components) == 2
     assert pc.components[0][1].name == "H"
     assert pc.components[1][1].name == "Heralded CNOT"
-    r = pc.probs()['results']
-    assert np.allclose(r[BasicState("|0, 1, 0, 1>")], 0.5)
-    assert np.allclose(r[BasicState("|1, 0, 1, 0>")], 0.5)
+    res = pc.probs()['results']
+    assert res[FockState("|0,1,0,1>")] == pytest.approx(0.5)
+    assert res[FockState("|1,0,1,0>")] == pytest.approx(0.5)
 
 
 def test_converter_bell_state_swapped():
@@ -330,6 +331,7 @@ qubits 3
     with pytest.raises(ConversionUnsupportedFeatureError):
         CQASMConverter().convert(source)
 
+
 def test_converter_v1_qubits_error():
     source = f"""
 version 1.0
@@ -355,6 +357,7 @@ qubits 2
     pc = CQASMConverter().convert(source, use_postselection=False)
     assert pc.circuit_size == 4
     assert pc.source_distribution[StateVector('|1,0,1,0>')] == 1
+
 
 def test_converter_multi_target_1qubit():
     # cqasm allows the same single gate at many qubit locations using multiple targets

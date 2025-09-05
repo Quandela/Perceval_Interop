@@ -221,9 +221,10 @@ def test_cnot_herald():
     qc.cx(0, 1)
     pc = convertor.convert(qc, True)
     bsd_out = pc.probs()['results']
-    assert bsd_out[BasicState("|1,0,0,1>")] + bsd_out[BasicState("|0,1,1,0>")] < 2e-5
-    assert bsd_out[BasicState("|1,0,1,0>")] + bsd_out[BasicState("|0,1,0,1>")] > 0.99
-    assert len(bsd_out) == 4
+    assert bsd_out[BasicState("|1,0,1,0>")] == pytest.approx(0.5)
+    assert bsd_out[BasicState("|0,1,0,1>")] == pytest.approx(0.5)
+    assert len(bsd_out) == 2
+
 
 def qiskit_circ_multiple_cnots():
     # Gate Circuit
@@ -249,6 +250,7 @@ def qiskit_circ_multiple_cnots():
     circ.cx(2, 3)
     circ.cx(2, 3)
     return circ
+
 
 def test_cnot_ppcnot_vs_hcnot():
     qisk_circ = qiskit_circ_multiple_cnots()
@@ -319,6 +321,7 @@ def test_basic_circuit_sdg():
     assert isinstance(c._components[0][1], Circuit) and len(c._components[0][1]._components) == 1
     assert isinstance(c._components[0][1]._components[0][1], comp.PS)
 
+
 def test_basic_circuit_tdg():
     convertor = QiskitConverter()
     qc = qiskit.QuantumCircuit(1)
@@ -332,6 +335,7 @@ def test_basic_circuit_tdg():
     assert isinstance(c._components[0][1], Circuit) and len(c._components[0][1]._components) == 1
     assert isinstance(c._components[0][1]._components[0][1], comp.PS)
 
+
 def test_circuit_measure():
     circuit = qiskit.QuantumCircuit(4)
     circuit.h(range(2))
@@ -341,6 +345,7 @@ def test_circuit_measure():
     convertor = QiskitConverter()
     with pytest.raises(AssertionError):
         convertor.convert(circuit)
+
 
 def test_random_qiskit_circuit():
     qc = qiskit.QuantumCircuit(1)
