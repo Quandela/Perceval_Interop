@@ -21,3 +21,4 @@
 # SOFTWARE.
 
 from .myqlm_converter import MyQLMConverter
+from .qpu_handler import PercevalHandler, QuandelaQPUHandler
