@@ -100,7 +100,6 @@ class QuandelaQPUHandler(QPUHandler):
         self.handler = remote_processor.get_rpc_handler()  # Used to submit jobs
 
     def get_specs(self) -> "HardwareSpecs":
-        # TODO: return other kind of specs ? (platform type, available commands, status, performance)
         hw = HardwareSpecs()
         PercevalHandler.write_meta_data(hw, PercevalHandler.SPECS_KEY, self.processor.specs)
         PercevalHandler.write_meta_data(hw, PercevalHandler.TYPE_KEY, self.processor.type.name)
