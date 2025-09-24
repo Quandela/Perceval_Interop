@@ -24,7 +24,7 @@ import json
 
 try:
     from qat.core import HardwareSpecs
-    from qat.core.wrappers import Result
+    from qat.core.wrappers import Job, Result
     from qat.core.qpu import QPUHandler
 except ImportError:
     class QPUHandler:
@@ -60,8 +60,6 @@ class PercevalHandler:
         :param kwargs: (optional) arguments to add to the payload, such as `max_shots` or `max_samples`
         :return: A MyQLM Job instance containing the perceval payload as a string in the meta_data field.
         """
-        # Import this here, so that the error message is human readable if myqlm was not installed
-        from qat.core.wrappers import Job
         payload = PayloadGenerator.generate_payload(command, experiment, params, platform_name, **kwargs)
         job = Job()
         PercevalHandler.write_meta_data(job, PercevalHandler.PAYLOAD_KEY, payload)
