@@ -31,8 +31,7 @@ except ImportError:
         # Needed so we can inherit from it
         pass
 
-from perceval import (RemoteJob, RemoteProcessor, Experiment, PayloadGenerator, ProcessorType,
-                      __version__ as pcvl_version)
+from perceval import RemoteJob, RemoteProcessor, Experiment, PayloadGenerator, ProcessorType
 from perceval.serialization import serialize, deserialize
 
 from .myqlm_converter import MyQLMConverter
@@ -107,21 +106,15 @@ class QuandelaQPUHandler(QPUHandler):
             PercevalHandler.write_meta_data(hw, PercevalHandler.PERF_KEY, self.processor.performance)
         return hw
 
-    def submit_job(self, job: "Job"):
-        full_payload = None
+    def submit_job(self, job: "Job") -> "Result":
         if job.circuit is not None and job.nbshots:
             converter = MyQLMConverter()
             p = converter.convert(job.circuit, use_postselection=True)
-            full_payload = {
-                "platform_name": self.processor.name,
-                "pcvl_version": pcvl_version,
-                "payload": {
-                    "command": "sample_count",
-                    "experiment": p.experiment,
-                    "max_shots": job.nbshots,
-                    "max_samples": job.nbshots,
-                }
-            }
+            full_payload = PayloadGenerator.generate_payload(command="sample_count",
+                                                             experiment=p.experiment,
+                                                             platform_name=self.handler.name,
+                                                             max_shots=job.nbshots,
+                                                             max_samples=job.nbshots)
         else:
             full_payload = PercevalHandler.parse_meta_data(job, PercevalHandler.PAYLOAD_KEY)
 
