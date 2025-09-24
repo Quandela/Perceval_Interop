@@ -31,14 +31,20 @@ except ImportError:
         # Needed so we can inherit from it
         pass
 
-from perceval import RemoteJob, RemoteProcessor, Experiment, PayloadGenerator
+from perceval import (RemoteJob, RemoteProcessor, Experiment, PayloadGenerator, ProcessorType,
+                      __version__ as pcvl_version)
 from perceval.serialization import serialize, deserialize
+
+from .myqlm_converter import MyQLMConverter
 
 
 class PercevalHandler:
     PAYLOAD_KEY = "perceval_payload"
-    SPECS_KEY = "perceval_specs"
+    SPECS_KEY = "platform_specs"
+    PERF_KEY = "platform_perf"
+    TYPE_KEY = "platform_type"
     RESULTS_KEY = "perceval_results"
+
 
     @staticmethod
     def make_job(command: str,
@@ -60,14 +66,16 @@ class PercevalHandler:
         return job
 
     @staticmethod
-    def parse_meta_data(obj, key:str):
+    def parse_meta_data(obj, key: str):
         if not hasattr(obj, "meta_data") or obj.meta_data is None:
             return None
         return deserialize(json.loads(obj.meta_data[key]))
 
     @staticmethod
-    def write_meta_data(obj, key:str, value):
-        obj.meta_data = {key: json.dumps(serialize(value))}
+    def write_meta_data(obj, key: str, value):
+        if not hasattr(obj, "meta_data") or not obj.meta_data:
+            obj.meta_data = {}
+        obj.meta_data[key] = json.dumps(serialize(value))
 
     @staticmethod
     def retrieve_results(results: "Result") -> dict:
@@ -95,19 +103,40 @@ class QuandelaQPUHandler(QPUHandler):
         # TODO: return other kind of specs ? (platform type, available commands, status, performance)
         hw = HardwareSpecs()
         PercevalHandler.write_meta_data(hw, PercevalHandler.SPECS_KEY, self.processor.specs)
+        PercevalHandler.write_meta_data(hw, PercevalHandler.TYPE_KEY, self.processor.type.name)
+        if self.processor.type == ProcessorType.PHYSICAL:
+            PercevalHandler.write_meta_data(hw, PercevalHandler.PERF_KEY, self.processor.performance)
         return hw
 
     def submit_job(self, job: "Job"):
-        # TODO: use gate converter if there is a myqlm circuit ?
-        full_payload = PercevalHandler.parse_meta_data(job, PercevalHandler.PAYLOAD_KEY)
-        platform = full_payload['platform_name']  # Fixed by the payload or this instance ?
-        assert platform == self.processor.name, "Platform name mismatch"  # Or: self.handler.name = platform
+        full_payload = None
+        if job.circuit is not None and job.nbshots:
+            converter = MyQLMConverter()
+            p = converter.convert(job.circuit, use_postselection=True)
+            full_payload = {
+                "platform_name": self.processor.name,
+                "pcvl_version": pcvl_version,
+                "payload": {
+                    "command": "sample_count",
+                    "experiment": p.experiment,
+                    "max_shots": job.nbshots,
+                    "max_samples": job.nbshots,
+                }
+            }
+        else:
+            full_payload = PercevalHandler.parse_meta_data(job, PercevalHandler.PAYLOAD_KEY)
+
+        if full_payload is None:
+            raise RuntimeError(f"No valid payload data found")
+
+        if full_payload['platform_name'] != self.processor.name:
+            raise RuntimeError("Platform name mismatch")
+
         job_name = full_payload['payload'].get("command", "MyJob")
-
         job = RemoteJob(full_payload, self.handler, job_name)
-        pcvl_results = job()
+        pcvl_results = job.execute_sync()
 
-        results = Result()
+        result = Result()
         # Note: we could avoid a deserialization/serialization
-        PercevalHandler.write_meta_data(results, PercevalHandler.RESULTS_KEY, pcvl_results)
-        return results
+        PercevalHandler.write_meta_data(result, PercevalHandler.RESULTS_KEY, pcvl_results)
+        return result
