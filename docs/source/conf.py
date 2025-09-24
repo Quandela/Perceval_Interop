@@ -73,7 +73,6 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx_autodoc_typehints",
     "sphinx.ext.autosectionlabel",
-    "sphinxcontrib.bibtex",
     "enum_tools.autoenum",
     "nbsphinx",
     "sphinx_multiversion",
