@@ -19,8 +19,17 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+try:
 
-from .qiskit_converter import QiskitConverter
-from .converter_statevector import StatevectorConverter
-from .circuit_to_graph_converter import CircuitToGraphConverter
-from .resources_estimator import ResourcesEstimator
+    from .qiskit_converter import QiskitConverter
+    from .converter_statevector import StatevectorConverter
+    from .circuit_to_graph_converter import CircuitToGraphConverter
+    from .resources_estimator import ResourcesEstimator
+
+except ModuleNotFoundError:
+
+    from perceval_interop.utils import MissingDependency
+    QiskitConverter = MissingDependency("QiskitConverter", "qiskit_bridge")
+    StatevectorConverter = MissingDependency("StatevectorConverter", "qiskit_bridge")
+    CircuitToGraphConverter = MissingDependency("CircuitToGraphConverter", "qiskit_bridge")
+    ResourcesEstimator = MissingDependency("ResourcesEstimator", "qiskit_bridge")

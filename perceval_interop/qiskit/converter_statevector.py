@@ -25,6 +25,9 @@ from perceval.utils import StateVector
 from perceval.utils import BasicState
 from perceval.utils import Encoding
 
+from qiskit.quantum_info import Statevector as Qiskit_sv
+from qutip import Qobj
+
 
 class StatevectorConverter:
 
@@ -120,13 +123,11 @@ class StatevectorConverter:
     def to_qiskit(self, sv):
         r"""With the array of amplitudes, returns a Statevector from qiskit
         """
-        from qiskit.quantum_info import Statevector as Qiskit_sv
         return Qiskit_sv(self.amplitude(sv))
 
     def to_qutip(self, sv):
         r"""With the array of amplitudes, returns a Statevector from qutip
         """
-        from qutip import Qobj
         ampli = self.amplitude(sv)
         qutip_ampli = [[a] for a in ampli]
         n = int(np.log2(len(ampli)))
@@ -134,18 +135,10 @@ class StatevectorConverter:
         return Qobj(qutip_ampli, dims)
 
     def _convert_foreign_sv_to_ndarray(self, q_sv) -> np.ndarray:
-        try:
-            from qiskit.quantum_info import Statevector as Qiskit_sv
-            if isinstance(q_sv, Qiskit_sv):
-                return np.array(q_sv).reshape(-1)
-        except ModuleNotFoundError:
-            pass
-        try:
-            from qutip.core.qobj import Qobj
-            if isinstance(q_sv, Qobj):
-                return q_sv.data.to_array().reshape(-1)
-        except ModuleNotFoundError:
-            pass
+        if isinstance(q_sv, Qiskit_sv):
+            return np.array(q_sv).reshape(-1)
+        if isinstance(q_sv, Qobj):
+            return q_sv.data.to_array().reshape(-1)
         raise TypeError(f"Unsupported type of State Vector for conversion: {type(q_sv)}")
 
     def to_perceval(self, q_sv):

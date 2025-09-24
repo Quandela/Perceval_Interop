@@ -24,6 +24,8 @@ from perceval_interop.abstract_converter import AGateConverter
 from perceval.components import catalog
 from perceval.utils import NoiseModel
 
+import qiskit as qiskit  # this nested import fixes automatic class reference generation
+
 
 class QiskitConverter(AGateConverter):
     r"""Qiskit quantum circuit to perceval processor converter.
@@ -32,7 +34,6 @@ class QiskitConverter(AGateConverter):
     """
     def __init__(self, backend_name: str = "SLOS", noise_model: NoiseModel = None):
         super().__init__(backend_name, noise_model)
-        import qiskit as qiskit # this nested import fixes automatic class reference generation
         self._qiskit = qiskit
 
     def count_qubits(self, gate_circuit) -> int:
