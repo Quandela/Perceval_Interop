@@ -20,6 +20,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from .converter_utils import label_cnots_in_gate_sequence
-from .metadata import PMetadata
-from .missing_dependency import MissingDependency
+class MissingDependency(Exception):
+
+    def __init__(self, self_name: str, extra_requirement: str):
+        super().__init__(f"{self_name} can't be imported: run 'pip install perceval_interop[{extra_requirement}]'")
+
+    def __call__(self, *args, **kwargs):  # Mimics the __init__ from the missing object
+        raise self
+
+    def __getattr__(self, item):
+        if not item.startswith("__"):
+            raise self
+        return super().__getattribute__(item)

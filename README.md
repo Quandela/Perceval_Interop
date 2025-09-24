@@ -69,7 +69,7 @@ pytest --cov=perceval-interop
 # Documentation and Forum
 
 * The [documentation](https://perceval.quandela.net/interopdocs/)
-* The [Community Forum](https://perceval.quandela.net/forum)
+* The [Community Forum](https://community.quandela.com/)
 
 #
 
