@@ -41,6 +41,4 @@ class MissingDependency(Exception):
         raise self
 
     def __getattr__(self, item):
-        if not item.startswith("__"):
-            raise self
-        return super().__getattribute__(item)
+        raise self
