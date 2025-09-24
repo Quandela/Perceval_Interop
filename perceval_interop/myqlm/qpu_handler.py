@@ -21,16 +21,9 @@
 # SOFTWARE.
 
 import json
-
-try:
-    from qat.core import HardwareSpecs
-    from qat.core.wrappers import Job, Result
-    from qat.core.qpu import QPUHandler
-except ImportError:
-    class QPUHandler:
-        # Needed so we can inherit from it but crash at init
-        def __init__(self):
-            raise ImportError("myqlm (qat package) is not correctly installed")
+from qat.core import HardwareSpecs
+from qat.core.wrappers import Job as MyQLMJob, Result as MyQLMResult
+from qat.core.qpu import QPUHandler
 
 from perceval import RemoteJob, RemoteProcessor, Experiment, PayloadGenerator, ProcessorType
 from perceval.serialization import serialize, deserialize
@@ -45,13 +38,12 @@ class PercevalHandler:
     TYPE_KEY = "platform_type"
     RESULTS_KEY = "perceval_results"
 
-
     @staticmethod
     def make_job(command: str,
                  experiment: Experiment = None,
                  params: dict[str, any] = None,
                  platform_name: str = "",
-                 **kwargs) -> "Job":
+                 **kwargs) -> MyQLMJob:
         """
         :param command: name of the method used
         :param experiment: (optional) Perceval experiment, by default an empty Experiment will be generated
@@ -61,7 +53,7 @@ class PercevalHandler:
         :return: A MyQLM Job instance containing the perceval payload as a string in the meta_data field.
         """
         payload = PayloadGenerator.generate_payload(command, experiment, params, platform_name, **kwargs)
-        job = Job()
+        job = MyQLMJob()
         PercevalHandler.write_meta_data(job, PercevalHandler.PAYLOAD_KEY, payload)
         return job
 
@@ -78,12 +70,12 @@ class PercevalHandler:
         obj.meta_data[key] = json.dumps(serialize(value))
 
     @staticmethod
-    def retrieve_results(results: "Result") -> dict:
+    def retrieve_results(results: MyQLMResult) -> dict:
         assert PercevalHandler.RESULTS_KEY in results.meta_data, "Results don't come from a perceval job"
         return PercevalHandler.parse_meta_data(results, PercevalHandler.RESULTS_KEY)
 
     @staticmethod
-    def retrieve_specs(hw: "HardwareSpecs") -> dict:
+    def retrieve_specs(hw: HardwareSpecs) -> dict:
         """
         :param hw: A HardwareSpecs instance got from requesting the specs from a perceval QPU
         :return:
@@ -99,7 +91,7 @@ class QuandelaQPUHandler(QPUHandler):
         self.processor = remote_processor  # Used to get the specs
         self.handler = remote_processor.get_rpc_handler()  # Used to submit jobs
 
-    def get_specs(self) -> "HardwareSpecs":
+    def get_specs(self) -> HardwareSpecs:
         hw = HardwareSpecs()
         PercevalHandler.write_meta_data(hw, PercevalHandler.SPECS_KEY, self.processor.specs)
         PercevalHandler.write_meta_data(hw, PercevalHandler.TYPE_KEY, self.processor.type.name)
@@ -107,7 +99,7 @@ class QuandelaQPUHandler(QPUHandler):
             PercevalHandler.write_meta_data(hw, PercevalHandler.PERF_KEY, self.processor.performance)
         return hw
 
-    def submit_job(self, job: "Job") -> "Result":
+    def submit_job(self, job: MyQLMJob) -> MyQLMResult:
         if job.circuit is not None and job.nbshots:
             converter = MyQLMConverter()
             p = converter.convert(job.circuit, use_postselection=True)
@@ -129,7 +121,7 @@ class QuandelaQPUHandler(QPUHandler):
         job = RemoteJob(full_payload, self.handler, job_name)
         pcvl_results = job.execute_sync()
 
-        result = Result()
+        result = MyQLMResult()
         # Note: we could avoid a deserialization/serialization
         PercevalHandler.write_meta_data(result, PercevalHandler.RESULTS_KEY, pcvl_results)
         return result

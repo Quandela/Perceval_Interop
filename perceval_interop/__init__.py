@@ -23,5 +23,5 @@
 from .abstract_converter import AGateConverter
 from .myqlm import MyQLMConverter, PercevalHandler, QuandelaQPUHandler
 from .qiskit import QiskitConverter, StatevectorConverter, CircuitToGraphConverter
-from .cqasm import CQASMConverter, ConversionSyntaxError, ConversionUnsupportedFeatureError, ConversionBadVersionError
+from .cqasm import CQASMConverter
 from .utils import *

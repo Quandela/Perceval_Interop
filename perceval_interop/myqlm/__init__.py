@@ -19,6 +19,13 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+try:
+    from .myqlm_converter import MyQLMConverter
+    from .qpu_handler import PercevalHandler, QuandelaQPUHandler
 
-from .myqlm_converter import MyQLMConverter
-from .qpu_handler import PercevalHandler, QuandelaQPUHandler
+except ModuleNotFoundError:
+    from perceval_interop.utils import MissingDependency
+    extra_name = "myqlm_bridge"
+    MyQLMConverter = MissingDependency("MyQLMConverter", extra_name)
+    PercevalHandler = MissingDependency("PercevalHandler", extra_name)
+    QuandelaQPUHandler = MissingDependency("QuandelaQPUHandler", extra_name)

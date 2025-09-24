@@ -27,9 +27,9 @@ try:
     from .resources_estimator import ResourcesEstimator
 
 except ModuleNotFoundError:
-
     from perceval_interop.utils import MissingDependency
-    QiskitConverter = MissingDependency("QiskitConverter", "qiskit_bridge")
-    StatevectorConverter = MissingDependency("StatevectorConverter", "qiskit_bridge")
-    CircuitToGraphConverter = MissingDependency("CircuitToGraphConverter", "qiskit_bridge")
-    ResourcesEstimator = MissingDependency("ResourcesEstimator", "qiskit_bridge")
+    extra_name = "qiskit_bridge"
+    QiskitConverter = MissingDependency("QiskitConverter", extra_name)
+    StatevectorConverter = MissingDependency("StatevectorConverter", extra_name)
+    CircuitToGraphConverter = MissingDependency("CircuitToGraphConverter", extra_name)
+    ResourcesEstimator = MissingDependency("ResourcesEstimator", extra_name)

@@ -25,15 +25,15 @@ import pytest
 from exqalibur import FockState
 
 try:
-    import cqasm
+    import cqasm.v3x as cqasm
 except ModuleNotFoundError as e:
     assert e.name == "cqasm"
     pytest.skip("need `cqasm` module", allow_module_level=True)
 
 import numpy as np
 from pathlib import Path
-from perceval_interop.cqasm import (CQASMConverter, ConversionSyntaxError,
-                                    ConversionUnsupportedFeatureError, ConversionBadVersionError)
+from perceval_interop import (CQASMConverter, ConversionSyntaxError, ConversionUnsupportedFeatureError,
+                              ConversionBadVersionError)
 from perceval.components import BS
 from perceval.utils import BasicState, StateVector
 
@@ -245,7 +245,7 @@ def test_converter_from_file():
 
 def test_converter_from_ast():
     converter = CQASMConverter()
-    ast = converter._cqasm.Analyzer().analyze_string("version 3\nqubit q\nH q")
+    ast = cqasm.Analyzer().analyze_string("version 3\nqubit q\nH q")
     pc = converter.convert(ast)
     assert pc.circuit_size == 2
     assert len(pc.components) == 1

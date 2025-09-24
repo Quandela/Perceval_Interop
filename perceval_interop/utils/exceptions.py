@@ -20,6 +20,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+class ConversionBadVersionError(Exception):
+    pass
+
+
+class ConversionSyntaxError(Exception):
+    pass
+
+
+class ConversionUnsupportedFeatureError(Exception):
+    pass
+
+
 class MissingDependency(Exception):
 
     def __init__(self, self_name: str, extra_requirement: str):

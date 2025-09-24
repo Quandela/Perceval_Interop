@@ -22,4 +22,5 @@
 
 from .converter_utils import label_cnots_in_gate_sequence
 from .metadata import PMetadata
-from .missing_dependency import MissingDependency
+from .exceptions import (ConversionUnsupportedFeatureError, ConversionBadVersionError, ConversionSyntaxError,
+                         MissingDependency)

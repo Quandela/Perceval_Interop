@@ -24,7 +24,7 @@ from perceval_interop.abstract_converter import AGateConverter
 from perceval.components import catalog
 from perceval.utils import NoiseModel
 
-import qiskit as qiskit  # this nested import fixes automatic class reference generation
+import qiskit
 
 
 class QiskitConverter(AGateConverter):
@@ -34,7 +34,6 @@ class QiskitConverter(AGateConverter):
     """
     def __init__(self, backend_name: str = "SLOS", noise_model: NoiseModel = None):
         super().__init__(backend_name, noise_model)
-        self._qiskit = qiskit
 
     def count_qubits(self, gate_circuit) -> int:
         return gate_circuit.qregs[0].size  # number of qubits
@@ -64,15 +63,15 @@ class QiskitConverter(AGateConverter):
         """
 
         # some limitation in the conversion, in particular measure
-        assert all(isinstance(instruction.operation, self._qiskit.circuit.gate.Gate)
+        assert all(isinstance(instruction.operation, qiskit.circuit.gate.Gate)
                    for _, instruction in enumerate(qisk_circ.data)), \
             "Cannot convert instruction(s): " + ", ".join(
                 f"{type(instruction.operation)}" for _, instruction in enumerate(qisk_circ.data)
-                if not isinstance(instruction.operation, self._qiskit.circuit.gate.Gate))
+                if not isinstance(instruction.operation, qiskit.circuit.gate.Gate))
 
         gate_sequence = []
         for instruction in qisk_circ.data:
-            if isinstance(instruction.operation, self._qiskit.circuit.barrier.Barrier):
+            if isinstance(instruction.operation, qiskit.circuit.barrier.Barrier):
                 continue
 
             gate_name = QiskitConverter._map_gate_names(instruction.operation.name)
