@@ -21,11 +21,12 @@
 # SOFTWARE.
 try:
     from .myqlm_converter import MyQLMConverter
-    from .qpu_handler import PercevalHandler, QuandelaQPUHandler
+    from .myqlm_helper import MyQLMHelper
+    from .qpu_handler import QuandelaQPUHandler
 
 except ModuleNotFoundError:
     from perceval_interop.utils import MissingDependency
     extra_name = "myqlm_bridge"
     MyQLMConverter = MissingDependency("MyQLMConverter", extra_name)
-    PercevalHandler = MissingDependency("PercevalHandler", extra_name)
+    MyQLMHelper = MissingDependency("MyQLMHelper", extra_name)
     QuandelaQPUHandler = MissingDependency("QuandelaQPUHandler", extra_name)
