@@ -20,7 +20,29 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from .converter_utils import label_cnots_in_gate_sequence
-from .metadata import PMetadata
-from .exceptions import (ConversionUnsupportedFeatureError, ConversionBadVersionError, ConversionSyntaxError,
-                         MissingDependency, MissingDependencyError)
+class ConversionBadVersionError(Exception):
+    pass
+
+
+class ConversionSyntaxError(Exception):
+    pass
+
+
+class ConversionUnsupportedFeatureError(Exception):
+    pass
+
+
+class MissingDependencyError(Exception):
+    pass
+
+
+class MissingDependency:
+
+    def __init__(self, self_name: str, extra_requirement: str):
+        self.e = MissingDependencyError(f"{self_name} can't be imported: run 'pip install perceval-interop[{extra_requirement}]'")
+
+    def __call__(self, *args, **kwargs):  # Mimics the __init__ from the missing object
+        raise self.e
+
+    def __getattr__(self, item):
+        raise self.e

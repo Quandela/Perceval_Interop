@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from perceval_interop.qiskit.circuit_to_graph_converter import CircuitToGraphConverter, gates_and_qubits
+from .circuit_to_graph_converter import CircuitToGraphConverter, gates_and_qubits
 import numpy as np
 
 
