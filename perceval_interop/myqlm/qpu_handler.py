@@ -70,7 +70,7 @@ class QuandelaQPUHandler(QPUHandler):
     >>> from qat.core import Job
     >>>
     >>> myqlm_job = Job()
-    >>> # Define your quantum experimet in the job
+    >>> # Define your quantum experiment in the job
     >>> # ...
     >>> qpu = RemoteQPU(1212, "middleware.host.address")
     >>> result = qpu.submit_job(myqlm_job)

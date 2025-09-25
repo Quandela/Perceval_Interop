@@ -28,7 +28,7 @@ from perceval import RemoteProcessor, Experiment, Matrix, Unitary, BasicState, P
 from perceval.runtime.rpc_handler import RPCHandler
 from perceval.serialization import serialize
 
-from perceval_interop import QuandelaQPUHandler, PercevalHandler
+from perceval_interop import QuandelaQPUHandler, MyQLMHelper
 
 try:
     from qat.core import HardwareSpecs, Job
@@ -98,7 +98,7 @@ def test_specs():
 
     _test_serialize_deserialize(specs, "test_specs.hw")
 
-    specs = PercevalHandler.retrieve_specs(specs)
+    specs = MyQLMHelper.retrieve_specs(specs)
     assert specs == rp.specs
 
 
@@ -112,11 +112,11 @@ def test_user_stack():
     # First, turn the experiment into a MyQLM serializable Job
     command = "sample_count"
     platform = "sim:test"
-    job = PercevalHandler.make_job(command, exp, platform_name=platform, max_shots=10_000_000)
+    job = MyQLMHelper.make_job(command, exp, platform_name=platform, max_shots=10_000_000)
 
     assert isinstance(job, Job)
 
-    full_payload = PercevalHandler.parse_meta_data(job, PercevalHandler.PAYLOAD_KEY)
+    full_payload = MyQLMHelper.parse_meta_data(job, MyQLMHelper.PAYLOAD_KEY)
     # Experiments don't define == so we compare the serialized results
     assert serialize(full_payload, compress=True) == PayloadGenerator.generate_payload(command, exp, platform_name=platform, max_shots=10_000_000)
 
@@ -130,6 +130,6 @@ def test_user_stack():
 
     results = _test_serialize_deserialize(results, "test_results.res")
 
-    perceval_results = PercevalHandler.retrieve_results(results)
+    perceval_results = MyQLMHelper.retrieve_results(results)
 
     assert perceval_results == rp.get_expected_results()
