@@ -32,13 +32,17 @@ class ConversionUnsupportedFeatureError(Exception):
     pass
 
 
-class MissingDependency(Exception):
+class MissingDependencyError(Exception):
+    pass
+
+
+class MissingDependency:
 
     def __init__(self, self_name: str, extra_requirement: str):
-        super().__init__(f"{self_name} can't be imported: run 'pip install perceval-interop[{extra_requirement}]'")
+        self.e = MissingDependencyError(f"{self_name} can't be imported: run 'pip install perceval-interop[{extra_requirement}]'")
 
     def __call__(self, *args, **kwargs):  # Mimics the __init__ from the missing object
-        raise self
+        raise self.e
 
     def __getattr__(self, item):
-        raise self
+        raise self.e
