@@ -21,8 +21,7 @@
 # SOFTWARE.
 
 import json
-from qat.core import HardwareSpecs
-from qat.core.wrappers import Job as MyQLMJob, Result as MyQLMResult
+from qat.core import HardwareSpecs, Job as MyQLMJob, Result as MyQLMResult
 from qat.core.qpu import QPUHandler
 
 from perceval import RemoteJob, RemoteProcessor, Experiment, PayloadGenerator, ProcessorType
@@ -85,6 +84,52 @@ class PercevalHandler:
 
 
 class QuandelaQPUHandler(QPUHandler):
+    """
+    Quandela compatible version of myQLM ``QPUHandler`` class. This class is supposed to be the middleware between a user
+    script, or a Qaptiva server and a single remote platform from Quandela.
+
+    :param remote_processor: A constructed Perceval access to a remote platform which will be used to send requests and
+                             retrieve results.
+
+    This class can be used in two ways:
+
+      * As an object
+      * As a server
+
+    Usage as an object:
+
+    >>> from perceval_interop import QuandelaQPUHandler
+    >>> from perceval import RemoteProcessor
+    >>> from qat.core import Job
+    >>>
+    >>> myqlm_job = Job()
+    >>> # Define your quantum experiment in the job
+    >>> # ...
+    >>> rp = RemoteProcessor("platform:name", "valid_access_token", "address.of.the.qpu.api")
+    >>> handler = QuandelaQPUHandler(rp)
+    >>> myqlm_result = handler.submit_job(myqlm_job)
+
+    Usage as a server:
+
+    >>> from perceval import RemoteProcessor
+    >>> from perceval_interop import QuandelaQPUHandler
+    >>>
+    >>> rp = RemoteProcessor("platform:name", "valid_access_token", "address.of.the.qpu.api")
+    >>> handler = QuandelaQPUHandler(rp)
+    >>> handler.serve(host_ip="middleware.host.address", port=1212)
+
+    After that, the ``QuandelaQPUHandler`` is listening to requests and transmitting them to the Quandela platform.
+    User scripts may connect by running:
+
+    >>> from qat.qpus import RemoteQPU
+    >>> from qat.core import Job
+    >>>
+    >>> myqlm_job = Job()
+    >>> # Define your quantum experimet in the job
+    >>> # ...
+    >>> qpu = RemoteQPU(1212, "middleware.host.address")
+    >>> result = qpu.submit_job(myqlm_job)
+    """
 
     def __init__(self, remote_processor: RemoteProcessor):
         super().__init__()
@@ -92,6 +137,23 @@ class QuandelaQPUHandler(QPUHandler):
         self.handler = remote_processor.get_rpc_handler()  # Used to submit jobs
 
     def get_specs(self) -> HardwareSpecs:
+        """
+        Retrieve the specifications of the Quandela platform and store them in the metadata field of a myQLM
+        ``HardwareSpecs`` instance.
+
+        :return: Hardware specifications
+
+        Data is split into several chunks (some are optional, depending on the platform):
+
+        * Full specifications
+            * Available commands
+            * Chip architecture
+            * Platform custom options
+            * Platform documentation
+
+        * Platform name
+        * Latest auto-characterisation results (QPU performance - in terms of transmittance, g², HOM, etc.)
+        """
         hw = HardwareSpecs()
         PercevalHandler.write_meta_data(hw, PercevalHandler.SPECS_KEY, self.processor.specs)
         PercevalHandler.write_meta_data(hw, PercevalHandler.TYPE_KEY, self.processor.type.name)
@@ -100,6 +162,16 @@ class QuandelaQPUHandler(QPUHandler):
         return hw
 
     def submit_job(self, job: MyQLMJob) -> MyQLMResult:
+        """
+        Submit a myQLM job to the Quandela platform.
+
+        :param job: A myQLM ``Job`` containing
+
+                    * either a photonic-compatible gate-based circuit
+                    * or a Perceval generated payload, stored in the job metadata
+
+        :return: A myQLM ``Result`` containing Perceval-like results in its metadata field
+        """
         if job.circuit is not None and job.nbshots:
             converter = MyQLMConverter()
             p = converter.convert(job.circuit, use_postselection=True)
