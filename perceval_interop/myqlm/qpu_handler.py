@@ -129,9 +129,12 @@ class QuandelaQPUHandler(QPUHandler):
             full_payload = MyQLMHelper.parse_meta_data(job, MyQLMHelper.PAYLOAD_KEY)
 
         if full_payload is None:
-            raise RuntimeError(f"No valid payload data found")
+            raise RuntimeError("No valid payload data found")
 
-        if full_payload['platform_name'] != self.processor.name:
+        if not full_payload.get("platform_name", ""):
+            full_payload["platform_name"] = self.processor.name
+
+        elif full_payload['platform_name'] != self.processor.name:
             raise RuntimeError("Platform name mismatch")
 
         job_name = full_payload['payload'].get("command", "MyJob")

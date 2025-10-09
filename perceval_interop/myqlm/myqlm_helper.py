@@ -37,7 +37,7 @@ class MyQLMHelper:
     >>> from perceval_interop import MyQLMHelper
     >>> e = Experiment(4)
     >>> ...  # Define your perceval Experiment
-    >>> my_qlm_job = MyQLMHelper.make_job("sample_count", e, platform_name="target:platform", max_samples=1000)
+    >>> my_qlm_job = MyQLMHelper.make_job("sample_count", e, max_samples=1000)
     >>> my_qlm_results = qpu_handler.submit_job(my_qlm_job)  # Where qpu_handler is a QuandelaQPUHandler
     >>> results = MyQLMHelper.retrieve_results(my_qlm_results)  # Regular results as in any perceval's Sampler results
 
@@ -48,7 +48,7 @@ class MyQLMHelper:
     >>> from qat.qpus import RemoteQPU
     >>> e = Experiment(4)
     >>> ...  # Define your perceval Experiment
-    >>> my_qlm_job = MyQLMHelper.make_job("sample_count", e, platform_name="target:platform", max_samples=1000)
+    >>> my_qlm_job = MyQLMHelper.make_job("sample_count", e, max_samples=1000)
     >>> qpu = RemoteQPU(1212, "middleware.host.address")  # Assuming this is a remote QuandelaQPUHandler
     >>> my_qlm_results = qpu.submit_job(myqlm_job)
     >>> results = MyQLMHelper.retrieve_results(my_qlm_results)  # Regular results as in any perceval's Sampler results
