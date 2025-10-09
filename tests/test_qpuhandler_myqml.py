@@ -111,14 +111,13 @@ def test_user_stack():
 
     # First, turn the experiment into a MyQLM serializable Job
     command = "sample_count"
-    platform = "sim:test"
-    job = MyQLMHelper.make_job(command, exp, platform_name=platform, max_shots=10_000_000)
+    job = MyQLMHelper.make_job(command, exp, max_shots=10_000_000)
 
     assert isinstance(job, Job)
 
     full_payload = MyQLMHelper.parse_meta_data(job, MyQLMHelper.PAYLOAD_KEY)
     # Experiments don't define == so we compare the serialized results
-    assert serialize(full_payload, compress=True) == PayloadGenerator.generate_payload(command, exp, platform_name=platform, max_shots=10_000_000)
+    assert serialize(full_payload, compress=True) == PayloadGenerator.generate_payload(command, exp, max_shots=10_000_000)
 
     job = _test_serialize_deserialize(job, "test_job.job")
 
