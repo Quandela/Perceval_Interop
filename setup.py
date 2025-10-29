@@ -38,10 +38,10 @@ setuptools.setup(
     packages=package_list,
     install_requires=['perceval-quandela~=1.0.1'],
     extras_require={
-        "qiskit_bridge": QISKIT_BRIDGE_PKGS,
-        "qutip_bridge": QUTIP_BRIDGE_PKGS,
-        "myqlm_bridge": MYQLM_BRIDGE_PKGS,
-        "cqasm_bridge": CQASM_BRIDGE_PKGS,
+        "qiskit": QISKIT_BRIDGE_PKGS,
+        "qutip": QUTIP_BRIDGE_PKGS,
+        "myqlm": MYQLM_BRIDGE_PKGS,
+        "cqasm": CQASM_BRIDGE_PKGS,
         "all": QISKIT_BRIDGE_PKGS + QUTIP_BRIDGE_PKGS + MYQLM_BRIDGE_PKGS + CQASM_BRIDGE_PKGS
     },
     setup_requires=["scmver"],

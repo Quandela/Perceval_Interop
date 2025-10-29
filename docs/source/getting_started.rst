@@ -9,10 +9,10 @@ We recommend installing `perceval-interop` with `pip` in a virtual environment:
 .. code-block:: bash
 
    (venv) $ pip install perceval-interop
-   (venv) $ pip install perceval-interop[qiskit_bridge] # to install with qiskit and seaborn
-   (venv) $ pip install perceval-interop[qutip_bridge] # to install with qutip
-   (venv) $ pip install perceval-interop[myqlm_bridge] # to install with myqlm
-   (venv) $ pip install perceval-interop[cqasm_bridge] # to install with cqasm
+   (venv) $ pip install perceval-interop[qiskit] # to install with qiskit and seaborn
+   (venv) $ pip install perceval-interop[qutip] # to install with qutip
+   (venv) $ pip install perceval-interop[myqlm] # to install with myqlm
+   (venv) $ pip install perceval-interop[cqasm] # to install with cqasm
    (venv) $ pip install perceval-interop[all] # to install all of the above bridges
 
 Alternatively, if you are interested in contributing to the project - you can clone the project from github:
