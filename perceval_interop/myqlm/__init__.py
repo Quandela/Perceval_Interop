@@ -26,7 +26,7 @@ try:
 
 except ModuleNotFoundError:
     from perceval_interop.utils import MissingDependency
-    extra_name = "myqlm_bridge"
+    extra_name = "myqlm"
     MyQLMConverter = MissingDependency("MyQLMConverter", extra_name)
     MyQLMHelper = MissingDependency("MyQLMHelper", extra_name)
     QuandelaQPUHandler = MissingDependency("QuandelaQPUHandler", extra_name)

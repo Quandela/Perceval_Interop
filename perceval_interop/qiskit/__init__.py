@@ -28,7 +28,7 @@ try:
 
 except ModuleNotFoundError:
     from perceval_interop.utils import MissingDependency
-    extra_name = "qiskit_bridge"
+    extra_name = "qiskit"
     QiskitConverter = MissingDependency("QiskitConverter", extra_name)
     StatevectorConverter = MissingDependency("StatevectorConverter", extra_name)
     CircuitToGraphConverter = MissingDependency("CircuitToGraphConverter", extra_name)
