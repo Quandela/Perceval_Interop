@@ -31,10 +31,10 @@ We recommend installing it with `pip`, and selecting any interop package such as
 
 ```bash
 pip install --upgrade pip
-pip install perceval-interop[qiskit_bridge] #install qiskit and seaborn
-pip install perceval-interop[qutip_bridge] #install qutip
-pip install perceval-interop[myqlm_bridge] #install myqlm
-pip install perceval-interop[cqasm_bridge] #install cqasm
+pip install perceval-interop[qiskit] #install qiskit and seaborn
+pip install perceval-interop[qutip] #install qutip
+pip install perceval-interop[myqlm] #install myqlm
+pip install perceval-interop[cqasm] #install cqasm
 pip install perceval-interop[all] #install all above
 ```
 

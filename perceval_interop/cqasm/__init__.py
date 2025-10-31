@@ -23,4 +23,4 @@ try:
     from .cqasm_converter import CQASMConverter
 except ModuleNotFoundError:
     from perceval_interop.utils import MissingDependency
-    CQASMConverter = MissingDependency("CQASMConverter", "cqasm_bridge")
+    CQASMConverter = MissingDependency("CQASMConverter", "cqasm")
