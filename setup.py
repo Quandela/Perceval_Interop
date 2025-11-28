@@ -27,6 +27,7 @@ setuptools.setup(
         "Tracker": "https://github.com/Quandela/Perceval_Interop/issues"
     },
     classifiers=[
+        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
@@ -36,7 +37,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     packages=package_list,
-    install_requires=['perceval-quandela~=1.1.0'],
+    install_requires=['perceval-quandela~=1.0.1'],
     extras_require={
         "qiskit": QISKIT_BRIDGE_PKGS,
         "qutip": QUTIP_BRIDGE_PKGS,
@@ -45,6 +46,6 @@ setuptools.setup(
         "all": QISKIT_BRIDGE_PKGS + QUTIP_BRIDGE_PKGS + MYQLM_BRIDGE_PKGS + CQASM_BRIDGE_PKGS
     },
     setup_requires=["scmver"],
-    python_requires=">=3.10,<3.15",
+    python_requires=">=3.9,<3.15",
     scmver=True
 )

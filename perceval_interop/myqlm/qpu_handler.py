@@ -115,7 +115,7 @@ class QuandelaQPUHandler(QPUHandler):
         try:
             nb_jobs_in_queue = self.handler.get_job_availability()["num_jobs_in_queue"]
             MyQLMHelper.write_meta_data(hw, MyQLMHelper.WAITING_JOB_KEY, nb_jobs_in_queue)
-        except HTTPError:
+        except (HTTPError, AttributeError):
             pass
         return hw
 
