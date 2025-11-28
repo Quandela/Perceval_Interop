@@ -52,6 +52,9 @@ class _MockRPCHandler(RPCHandler):
     def get_job_results(self, id: str) -> dict:
         return {'results': json.dumps(serialize({"results": self._results}))}
 
+    def get_job_availability(self) -> dict:
+        return {"max_jobs_in_queue": 100, "num_jobs_in_queue": 0}
+
     @property
     def results(self):
         return {"results": self._results}

@@ -59,6 +59,9 @@ class MyQLMHelper:
     PERF_KEY = "platform_perf"
     TYPE_KEY = "platform_type"
     RESULTS_KEY = "perceval_results"
+    STATUS_KEY = "platform_status"
+    PROGRESS_KEY = "current_job_progress"
+    WAITING_JOB_KEY = "platform_waiting_jobs"
 
     @staticmethod
     def make_job(command: str,
@@ -150,3 +153,47 @@ class MyQLMHelper:
         """
         assert MyQLMHelper.PERF_KEY in hw.meta_data, "Hardware specs don't come from a quandela qpu"
         return MyQLMHelper.parse_meta_data(hw, MyQLMHelper.PERF_KEY)
+
+    @staticmethod
+    def retrieve_status(hw: HardwareSpecs) -> dict:
+        """
+        >>> from perceval_interop import MyQLMHelper
+        >>> from qat.qpus import RemoteQPU
+        >>> qpu = RemoteQPU(1212, "middleware.host.address")  # Assuming this is a remote QuandelaQPUHandler
+        >>> hardware_specs = qpu.get_specs()
+        >>> status = MyQLMHelper.retrieve_status(hardware_specs)
+
+        :param hw: A HardwareSpecs instance got from requesting the specs from a Quandela QPU
+        :return: The status of the QPU, as if returned by a perceval's RemoteProcessor
+        """
+        assert MyQLMHelper.STATUS_KEY in hw.meta_data, "Hardware specs don't come from a quandela qpu"
+        return MyQLMHelper.parse_meta_data(hw, MyQLMHelper.STATUS_KEY)
+
+    @staticmethod
+    def retrieve_progress(hw: HardwareSpecs) -> dict:
+        """
+        >>> from perceval_interop import MyQLMHelper
+        >>> from qat.qpus import RemoteQPU
+        >>> qpu = RemoteQPU(1212, "middleware.host.address")  # Assuming this is a remote QuandelaQPUHandler
+        >>> hardware_specs = qpu.get_specs()
+        >>> progress = MyQLMHelper.retrieve_progress(hardware_specs)
+
+        :param hw: A HardwareSpecs instance got from requesting the specs from a Quandela QPU
+        :return: The progress of the current job running on the QPU
+        """
+        assert MyQLMHelper.PROGRESS_KEY in hw.meta_data, "Hardware specs don't come from a quandela qpu"
+        return MyQLMHelper.parse_meta_data(hw, MyQLMHelper.PROGRESS_KEY)
+
+    @staticmethod
+    def retrieve_job_in_queue(hw: HardwareSpecs) -> dict:
+        """
+        >>> from perceval_interop import MyQLMHelper
+        >>> from qat.qpus import RemoteQPU
+        >>> qpu = RemoteQPU(1212, "middleware.host.address")  # Assuming this is a remote QuandelaQPUHandler
+        >>> hardware_specs = qpu.get_specs()
+        >>> job_in_queue = MyQLMHelper.retrieve_status(hardware_specs)
+
+        :param hw: A HardwareSpecs instance got from requesting the specs from a Quandela QPU
+        :return: The number of jobs currently in queue on the QPU, or None if the Hardware specs don't contain this information
+        """
+        return MyQLMHelper.parse_meta_data(hw, MyQLMHelper.WAITING_JOB_KEY) if MyQLMHelper.WAITING_JOB_KEY in hw.meta_data else None

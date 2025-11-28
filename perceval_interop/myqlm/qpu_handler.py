@@ -23,6 +23,7 @@ from qat.core import HardwareSpecs, Job as MyQLMJob, Result as MyQLMResult
 from qat.core.qpu import QPUHandler
 
 from perceval import RemoteJob, RemoteProcessor, PayloadGenerator, ProcessorType
+from requests import HTTPError
 
 from .myqlm_converter import MyQLMConverter
 from .myqlm_helper import MyQLMHelper
@@ -80,6 +81,7 @@ class QuandelaQPUHandler(QPUHandler):
         super().__init__()
         self.processor = remote_processor  # Used to get the specs
         self.handler = remote_processor.get_rpc_handler()  # Used to submit jobs
+        self._job = None
 
     def get_specs(self) -> HardwareSpecs:
         """
@@ -98,12 +100,23 @@ class QuandelaQPUHandler(QPUHandler):
 
         * Platform name
         * Latest auto-characterisation results (QPU performance - in terms of transmittance, g², HOM, etc.)
+        * Platform status (available, running, in maintenance...)
+        * Current job progress (float between 0 and 1, 1 meaning 100% or no job running)
         """
         hw = HardwareSpecs()
+        self.processor.fetch_data()  # Else data is not actualized
+        MyQLMHelper.write_meta_data(hw, MyQLMHelper.STATUS_KEY, self.processor.status)
         MyQLMHelper.write_meta_data(hw, MyQLMHelper.SPECS_KEY, self.processor.specs)
         MyQLMHelper.write_meta_data(hw, MyQLMHelper.TYPE_KEY, self.processor.type.name)
         if self.processor.type == ProcessorType.PHYSICAL:
             MyQLMHelper.write_meta_data(hw, MyQLMHelper.PERF_KEY, self.processor.performance)
+        MyQLMHelper.write_meta_data(hw, MyQLMHelper.PROGRESS_KEY, self._job.status.progress if self._job else 1.)
+
+        try:
+            nb_jobs_in_queue = self.handler.get_job_availability()["num_jobs_in_queue"]
+            MyQLMHelper.write_meta_data(hw, MyQLMHelper.WAITING_JOB_KEY, nb_jobs_in_queue)
+        except HTTPError:
+            pass
         return hw
 
     def submit_job(self, job: MyQLMJob) -> MyQLMResult:
@@ -138,8 +151,8 @@ class QuandelaQPUHandler(QPUHandler):
             raise RuntimeError("Platform name mismatch")
 
         job_name = full_payload['payload'].get("command", "MyJob")
-        job = RemoteJob(full_payload, self.handler, job_name)
-        pcvl_results = job.execute_sync()
+        self._job = RemoteJob(full_payload, self.handler, job_name)
+        pcvl_results = self._job.execute_sync()
 
         result = MyQLMResult()
         # Note: we could avoid a deserialization/serialization
