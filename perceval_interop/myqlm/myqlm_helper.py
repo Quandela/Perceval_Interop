@@ -77,6 +77,10 @@ class MyQLMHelper:
         :return: A MyQLM Job instance containing the perceval payload as a string in the meta_data field.
         """
         payload = PayloadGenerator.generate_payload(command, experiment, params, platform_name, **kwargs)
+        return MyQLMHelper.make_job_from_payload(payload)
+
+    @staticmethod
+    def make_job_from_payload(payload: dict):
         job = MyQLMJob()
         MyQLMHelper.write_meta_data(job, MyQLMHelper.PAYLOAD_KEY, payload)
         return job
