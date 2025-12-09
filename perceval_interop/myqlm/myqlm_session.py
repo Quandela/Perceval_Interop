@@ -103,12 +103,14 @@ class MyQLMSession(ISession):
     Automatic translator allowing to use a MyQLM RemoteQPU as if it was a perceval RemoteProcessor.
 
     There are a few things that this RemoteProcessor can't do, such as:
-    - Being used in a JobGroup
-    - Retrieving a job from its id (so a job is lost forever if python stops
-    - Some advanced job methods (cancel, rerun...)
-    - Jobs will always be executed synchronously
+
+        - Being used in a JobGroup
+        - Retrieving a job from its id (so a job is lost forever if python stops)
+        - Some advanced job methods (cancel, rerun...)
+        - Jobs will always be executed synchronously
 
     Usage:
+
         >>> from perceval_interop import MyQLMSession
         >>> from qat.core.qpu import RemoteQPU
         >>> remote_qpu = RemoteQPU(1212, "middleware.host.address")  # Assuming this is a remote QuandelaQPUHandler
@@ -117,6 +119,7 @@ class MyQLMSession(ISession):
         >>> # You can now proceed with the processor as if it was any perceval RemoteProcessor.
 
     The import can also be done through perceval's ProviderFactory:
+
         >>> import perceval_interop  # Needed to add the MyQLM Session to the providers list used by the factory
         >>> from perceval import ProviderFactory
         >>> from qat.core.qpu import RemoteQPU
