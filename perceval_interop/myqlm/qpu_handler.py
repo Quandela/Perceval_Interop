@@ -137,9 +137,12 @@ class QuandelaQPUHandler(QPUHandler):
         elif full_payload['platform_name'] != self.processor.name:
             raise RuntimeError("Platform name mismatch")
 
-        job_name = full_payload['payload'].get("command", "MyJob")
+        job_name = full_payload['payload'].get("job_name", full_payload['payload'].get("command", "Job"))
+        job_context = full_payload['payload'].get('job_context')
         job = RemoteJob(full_payload, self.handler, job_name)
         pcvl_results = job.execute_sync()
+        if job_context is not None:
+            pcvl_results["job_context"] = job_context
 
         result = MyQLMResult()
         # Note: we could avoid a deserialization/serialization

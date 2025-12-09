@@ -29,6 +29,7 @@ from perceval.runtime.remote_processor import PERFS_KEY
 from perceval.utils.logging import channel, get_logger
 
 from .myqlm_helper import MyQLMHelper
+from .qpu_handler import QuandelaQPUHandler
 
 
 class RPCHandler:
@@ -36,7 +37,7 @@ class RPCHandler:
     _job_id = 0
     _job_results: dict[str, Any] = {}
 
-    def __init__(self, remote_qpu: RemoteQPU):
+    def __init__(self, remote_qpu: RemoteQPU | QuandelaQPUHandler):
         self.remote_qpu = remote_qpu
         self.name = "qpu:myqlm"  # Needed to make the Sampler happy
         self.proxies = None
@@ -127,7 +128,7 @@ class MyQLMSession(ISession):
         >>> session = ProviderFactory.get_provider("MyQLM", remote_qpu=remote_qpu)
     """
 
-    def __init__(self, remote_qpu: RemoteQPU):
+    def __init__(self, remote_qpu: RemoteQPU | QuandelaQPUHandler):
         self.remote_qpu = remote_qpu
         get_logger().info(f"Creating MyQLM Session to {self.remote_qpu}", channel.general)
 
