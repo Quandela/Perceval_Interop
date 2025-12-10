@@ -110,7 +110,7 @@ class QuandelaQPUHandler(QPUHandler):
         MyQLMHelper.write_meta_data(hw, MyQLMHelper.SPECS_KEY, self.processor.specs)
         MyQLMHelper.write_meta_data(hw, MyQLMHelper.TYPE_KEY, self.processor.type.name)
 
-        MyQLMHelper.write_meta_data(hw, MyQLMHelper.PROGRESS_KEY, self._job.status.progress if self._job else 1.)
+        MyQLMHelper.write_meta_data(hw, MyQLMHelper.PROGRESS_KEY, self._get_progress())
 
         try:
             platform_details = self.handler.fetch_platform_details()
@@ -129,6 +129,9 @@ class QuandelaQPUHandler(QPUHandler):
             MyQLMHelper.write_meta_data(hw, MyQLMHelper.WAITING_JOB_KEY, platform_details["waiting_jobs"])
         return hw
 
+    def _get_progress(self):
+        return self._job.status.progress if self._job is not None else 1.
+
     def submit_job(self, job: MyQLMJob) -> MyQLMResult:
         """
         Submit a myQLM job to the Quandela platform.
@@ -140,6 +143,7 @@ class QuandelaQPUHandler(QPUHandler):
 
         :return: A myQLM ``Result`` containing Perceval-like results in its metadata field
         """
+
         if job.circuit is not None and job.nbshots:
             converter = MyQLMConverter()
             p = converter.convert(job.circuit, use_postselection=True)
@@ -161,8 +165,14 @@ class QuandelaQPUHandler(QPUHandler):
             raise RuntimeError("Platform name mismatch")
 
         job_name = full_payload['payload'].get("command", "MyJob")
+
+        if self._job is not None:
+            raise RuntimeError("A job is already running")
+
         self._job = RemoteJob(full_payload, self.handler, job_name)
         pcvl_results = self._job.execute_sync()
+
+        self._job = None
 
         result = MyQLMResult()
         # Note: we could avoid a deserialization/serialization
