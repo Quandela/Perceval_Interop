@@ -23,6 +23,7 @@ try:
     from .myqlm_converter import MyQLMConverter
     from .myqlm_helper import MyQLMHelper
     from .qpu_handler import QuandelaQPUHandler
+    from .myqlm_session import MyQLMSession
 
 except ModuleNotFoundError:
     from perceval_interop.utils import MissingDependency
@@ -30,3 +31,4 @@ except ModuleNotFoundError:
     MyQLMConverter = MissingDependency("MyQLMConverter", extra_name)
     MyQLMHelper = MissingDependency("MyQLMHelper", extra_name)
     QuandelaQPUHandler = MissingDependency("QuandelaQPUHandler", extra_name)
+    MyQLMSession = MissingDependency("MyQLMSession", extra_name)

@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 from .abstract_converter import AGateConverter
-from .myqlm import MyQLMConverter, MyQLMHelper, QuandelaQPUHandler
+from .myqlm import MyQLMConverter, MyQLMHelper, MyQLMSession, QuandelaQPUHandler
 from .qiskit import QiskitConverter, StatevectorConverter, CircuitToGraphConverter
 from .cqasm import CQASMConverter
 from .utils import *
