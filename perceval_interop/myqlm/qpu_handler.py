@@ -23,6 +23,8 @@ from qat.core import HardwareSpecs, Job as MyQLMJob, Result as MyQLMResult
 from qat.core.qpu import QPUHandler
 
 from perceval import RemoteJob, RemoteProcessor, PayloadGenerator, ProcessorType
+from perceval.runtime.remote_processor import PERFS_KEY
+from requests import HTTPError
 
 from .myqlm_converter import MyQLMConverter
 from .myqlm_helper import MyQLMHelper
@@ -80,6 +82,7 @@ class QuandelaQPUHandler(QPUHandler):
         super().__init__()
         self.processor = remote_processor  # Used to get the specs
         self.handler = remote_processor.get_rpc_handler()  # Used to submit jobs
+        self._job = None
 
     def get_specs(self) -> HardwareSpecs:
         """
@@ -98,13 +101,36 @@ class QuandelaQPUHandler(QPUHandler):
 
         * Platform name
         * Latest auto-characterisation results (QPU performance - in terms of transmittance, g², HOM, etc.)
+        * Platform status (available, running, in maintenance...)
+        * Current job progress (float between 0 and 1, 1 meaning 100% or no job running)
         """
         hw = HardwareSpecs()
+
+        # These fields are not supposed to change
         MyQLMHelper.write_meta_data(hw, MyQLMHelper.SPECS_KEY, self.processor.specs)
         MyQLMHelper.write_meta_data(hw, MyQLMHelper.TYPE_KEY, self.processor.type.name)
+
+        MyQLMHelper.write_meta_data(hw, MyQLMHelper.PROGRESS_KEY, self._get_progress())
+
+        try:
+            platform_details = self.handler.fetch_platform_details()
+        except HTTPError:
+            platform_details = {}
+
+        MyQLMHelper.write_meta_data(hw, MyQLMHelper.STATUS_KEY, platform_details.get("status", "unreachable"))
+
         if self.processor.type == ProcessorType.PHYSICAL:
+            if PERFS_KEY in platform_details:
+                self.processor.performance.update(platform_details[PERFS_KEY])
+
             MyQLMHelper.write_meta_data(hw, MyQLMHelper.PERF_KEY, self.processor.performance)
+
+        if "waiting_jobs" in platform_details:
+            MyQLMHelper.write_meta_data(hw, MyQLMHelper.WAITING_JOB_KEY, platform_details["waiting_jobs"])
         return hw
+
+    def _get_progress(self):
+        return self._job.status.progress if self._job is not None else 1.
 
     def submit_job(self, job: MyQLMJob) -> MyQLMResult:
         """
@@ -117,6 +143,7 @@ class QuandelaQPUHandler(QPUHandler):
 
         :return: A myQLM ``Result`` containing Perceval-like results in its metadata field
         """
+
         if job.circuit is not None and job.nbshots:
             converter = MyQLMConverter()
             p = converter.convert(job.circuit, use_postselection=True)
@@ -139,10 +166,16 @@ class QuandelaQPUHandler(QPUHandler):
 
         job_name = full_payload['payload'].get("job_name", full_payload['payload'].get("command", "Job"))
         job_context = full_payload['payload'].get('job_context')
-        job = RemoteJob(full_payload, self.handler, job_name)
-        pcvl_results = job.execute_sync()
+
+        if self._job is not None:
+            raise RuntimeError("A job is already running")
+
+        self._job = RemoteJob(full_payload, self.handler, job_name)
+        pcvl_results = self._job.execute_sync()
         if job_context is not None:
             pcvl_results["job_context"] = job_context
+
+        self._job = None
 
         result = MyQLMResult()
         # Note: we could avoid a deserialization/serialization

@@ -32,6 +32,7 @@ setuptools.setup(
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
@@ -45,6 +46,6 @@ setuptools.setup(
         "all": QISKIT_BRIDGE_PKGS + QUTIP_BRIDGE_PKGS + MYQLM_BRIDGE_PKGS + CQASM_BRIDGE_PKGS
     },
     setup_requires=["scmver"],
-    python_requires=">=3.9,<3.14",
+    python_requires=">=3.9,<3.15",
     scmver=True
 )
