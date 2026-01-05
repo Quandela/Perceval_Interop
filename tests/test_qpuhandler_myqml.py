@@ -24,7 +24,8 @@ import os
 
 import pytest
 from perceval import RemoteProcessor, Experiment, Matrix, Unitary, BasicState, PayloadGenerator, NoiseModel, \
-    BSDistribution, FockState
+    BSDistribution, FockState, ProviderFactory, BSSamples
+from perceval.algorithm import Sampler
 from perceval.runtime.rpc_handler import RPCHandler
 from perceval.serialization import serialize
 
@@ -67,7 +68,8 @@ class _MockRemoteProcessor(RemoteProcessor):
 
     def fetch_data(self):
         self._specs = {"name": self.name,
-                       "noise": NoiseModel(0.8)}  # Includes something not serializable by MyQML
+                       "noise": NoiseModel(0.8),  # Includes something not serializable by MyQML
+                       "available_commands": ["probs"]}
 
     def get_expected_results(self):
         return self._rpc_handler.results
@@ -135,3 +137,24 @@ def test_user_stack():
     perceval_results = MyQLMHelper.retrieve_results(results)
 
     assert perceval_results == rp.get_expected_results()
+
+
+def test_session():
+    mock_rp = _MockRemoteProcessor("sim:test")
+    handler = QuandelaQPUHandler(mock_rp)
+
+    session = ProviderFactory.get_provider("MyQLM", remote_qpu=handler)
+
+    rp = session.build_remote_processor()
+
+    rp.add(0, Unitary(Matrix.random_unitary(8)))
+    rp.with_input(BasicState([1, 0] * 4))  # |1,0,1,0,1...>
+    rp.min_detected_photons_filter(2)
+
+    sampler = Sampler(rp, max_shots_per_call=10_000)
+
+    perceval_results = sampler.samples(1000)
+
+    # Check that the Sampler's automatic conversion has been correctly applied
+    assert isinstance(perceval_results["results"], BSSamples)
+    assert len(perceval_results["results"]) == 1000

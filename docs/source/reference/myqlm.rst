@@ -1,3 +1,11 @@
+MyQLMSession
+^^^^^^^^^^^^
+
+.. autoclass:: perceval_interop.myqlm.myqlm_session.MyQLMSession
+   :members:
+   :inherited-members:
+
+
 MyQLMConverter
 ^^^^^^^^^^^^^^
 
