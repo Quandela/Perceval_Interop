@@ -47,10 +47,14 @@ class RPCHandler:
         """fetch platform details and settings"""
         hardware_specs = self.remote_qpu.get_specs()
 
+        specs = MyQLMHelper.retrieve_specs(hardware_specs)
+        specs[MyQLMHelper.PROGRESS_KEY] = MyQLMHelper.retrieve_progress(hardware_specs)
+        specs[MyQLMHelper.WAITING_JOB_KEY] = MyQLMHelper.retrieve_job_in_queue(hardware_specs)
+
         res = {
-            # "status": specs.pop("status", None),
-            "specs": MyQLMHelper.retrieve_specs(hardware_specs),
+            "specs": specs,
             "type": MyQLMHelper.retrieve_type(hardware_specs),
+            "status": MyQLMHelper.retrieve_status(hardware_specs),
         }
 
         try:
