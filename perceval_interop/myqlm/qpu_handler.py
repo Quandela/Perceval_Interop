@@ -181,12 +181,12 @@ class QuandelaQPUHandler(QPUHandler):
         self._job = RemoteJob(full_payload, self.handler, job_name)
         try:
             pcvl_results = self._job.execute_sync()
-        except Exception as e:
+        except Exception:
             if self._job.status.failed:
                 get_logger().warn(f'The job failed: {self._job.status.stop_message}', channel.user)
                 pcvl_results = {'error': self._job.status.stop_message}
             else:
-                raise e
+                raise
 
         if job_context is not None:
             pcvl_results["job_context"] = job_context
