@@ -7,7 +7,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 QISKIT_BRIDGE_PKGS = ["qiskit~=2.1.2", "seaborn~=0.13"]
-QUTIP_BRIDGE_PKGS = ["qutip~=5.0.4"]
+QUTIP_BRIDGE_PKGS = ['scipy<1.17', "qutip~=5.0.4"]  # we need to limit the scipy version to be compatible with qutip and python >=3.12
 MYQLM_BRIDGE_PKGS = ["myqlm~=1.11.3"]
 CQASM_BRIDGE_PKGS = ["libqasm==1.2.1"]  # libqasm is not stable enough to put ~=
 
