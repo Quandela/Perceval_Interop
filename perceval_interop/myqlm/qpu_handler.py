@@ -184,7 +184,7 @@ class QuandelaQPUHandler(QPUHandler):
         except Exception as e:
             if self._job.status.failed:
                 get_logger().warn(f'The job failed: {self._job.status.stop_message}', channel.user)
-                pcvl_results = {}
+                pcvl_results = {'error': self._job.status.stop_message}
             else:
                 raise e
 
