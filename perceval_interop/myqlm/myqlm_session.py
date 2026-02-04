@@ -25,6 +25,7 @@ from __future__ import annotations
 from typing import Any
 
 from qat.core.qpu import RemoteQPU
+from qat.qlmaas.result import AsyncResult
 
 from perceval import ISession, RemoteProcessor
 from perceval.runtime.remote_processor import PERFS_KEY
@@ -74,8 +75,11 @@ class RPCHandler:
         my_qlm_job = MyQLMHelper.make_job_from_payload(payload)
         job_id = str(self._job_id)
         self._job_id += 1
-        # TODO: make this async ?
-        self._job_results[job_id] = {"results": self.remote_qpu.submit_job(my_qlm_job).meta_data[MyQLMHelper.RESULTS_KEY]}
+        # TODO: make the job execution async ?
+        res = self.remote_qpu.submit_job(my_qlm_job)
+        if isinstance(res, AsyncResult):
+            res = res.join()
+        self._job_results[job_id] = {"results": res.meta_data[MyQLMHelper.RESULTS_KEY]}
         return job_id
 
     def get_job_results(self, job_id: str) -> dict:
