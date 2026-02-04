@@ -54,7 +54,7 @@ class _MockRPCHandler(RPCHandler):
         return {'results': json.dumps(serialize({"results": self._results}))}
 
     def fetch_platform_details(self) -> dict:
-        return {"status": "running", "waiting_jobs": 0}
+        return {"status": "available", "waiting_jobs": 0}
 
     @property
     def results(self):

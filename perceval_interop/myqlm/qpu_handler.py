@@ -24,6 +24,7 @@ from qat.core.qpu import QPUHandler
 
 from perceval import RemoteJob, RemoteProcessor, PayloadGenerator, ProcessorType
 from perceval.runtime.remote_processor import PERFS_KEY
+from perceval.utils.logging import channel, get_logger
 from requests import HTTPError
 
 from .myqlm_converter import MyQLMConverter
@@ -164,6 +165,13 @@ class QuandelaQPUHandler(QPUHandler):
         elif full_payload['platform_name'] != self.processor.name:
             raise RuntimeError("Platform name mismatch")
 
+        try:
+            platform_details = self.handler.fetch_platform_details()
+        except HTTPError:
+            raise RuntimeError("Platform is not available")
+        if platform_details.get("status") != 'available':
+            raise RuntimeError("Platform is not available")
+
         job_name = full_payload['payload'].get("job_name", full_payload['payload'].get("command", "Job"))
         job_context = full_payload['payload'].get('job_context')
 
@@ -171,7 +179,15 @@ class QuandelaQPUHandler(QPUHandler):
             raise RuntimeError("A job is already running")
 
         self._job = RemoteJob(full_payload, self.handler, job_name)
-        pcvl_results = self._job.execute_sync()
+        try:
+            pcvl_results = self._job.execute_sync()
+        except Exception:
+            if self._job.status.failed:
+                get_logger().warn(f'The job failed: {self._job.status.stop_message}', channel.user)
+                pcvl_results = {'error': self._job.status.stop_message}
+            else:
+                raise
+
         if job_context is not None:
             pcvl_results["job_context"] = job_context
 
