@@ -89,9 +89,11 @@ class MyQLMHelper:
         return job
 
     @staticmethod
-    def parse_meta_data(obj, key: str):
+    def parse_meta_data(obj, key: str, default = None):
         if not hasattr(obj, "meta_data") or obj.meta_data is None:
             return None
+        if key not in obj.meta_data:
+            return default
         return deserialize(json.loads(obj.meta_data[key]))
 
     @staticmethod
@@ -170,7 +172,7 @@ class MyQLMHelper:
         :param hw: A HardwareSpecs instance got from requesting the specs from a Quandela QPU
         :return: The status of the QPU, as if returned by a perceval's RemoteProcessor
         """
-        assert MyQLMHelper.STATUS_KEY in hw.meta_data, "Hardware specs don't come from a quandela qpu"
+        # assert MyQLMHelper.STATUS_KEY in hw.meta_data, "Hardware specs don't come from a quandela qpu"
         return MyQLMHelper.parse_meta_data(hw, MyQLMHelper.STATUS_KEY)
 
     @staticmethod
@@ -185,7 +187,7 @@ class MyQLMHelper:
         :param hw: A HardwareSpecs instance got from requesting the specs from a Quandela QPU
         :return: The progress of the current job running on the QPU
         """
-        assert MyQLMHelper.PROGRESS_KEY in hw.meta_data, "Hardware specs don't come from a quandela qpu"
+        # assert MyQLMHelper.PROGRESS_KEY in hw.meta_data, "Hardware specs don't come from a quandela qpu"
         return MyQLMHelper.parse_meta_data(hw, MyQLMHelper.PROGRESS_KEY)
 
     @staticmethod
