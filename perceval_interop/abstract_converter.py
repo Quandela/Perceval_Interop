@@ -129,7 +129,7 @@ class AGateConverter(ABC):
                 else:
                     ins = self._create_generic_1_qubit_gate(gate_inf[3])
                     ins._name = gate_inf[0]
-                self._converted_processor.add(gate_inf[1][0] * 2, ins.copy())
+                self._converted_processor.add(gate_inf[1][0] * 2, ins)
 
             else:
                 if len(gate_inf[1]) > 2:
