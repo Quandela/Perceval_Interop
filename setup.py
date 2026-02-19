@@ -37,7 +37,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     packages=package_list,
-    install_requires=['perceval-quandela~=1.0.1'],
+    install_requires=['perceval-quandela>=1.0.1,<2.0.0'],
     extras_require={
         "qiskit": QISKIT_BRIDGE_PKGS,
         "qutip": QUTIP_BRIDGE_PKGS,
