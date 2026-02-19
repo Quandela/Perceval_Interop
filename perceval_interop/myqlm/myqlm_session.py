@@ -76,7 +76,7 @@ class RPCHandler:
         job_id = str(self._job_id)
         self._job_id += 1
         # TODO: make the job execution async ?
-        res = self.remote_qpu.submit_job(my_qlm_job)
+        res = self.remote_qpu.submit(my_qlm_job)
         if isinstance(res, AsyncResult):
             res = res.join()
         self._job_results[job_id] = {"results": res.meta_data[MyQLMHelper.RESULTS_KEY]}
