@@ -57,11 +57,10 @@ def keep_latest_versions(versions, mini=None):
     version_dict = {}
 
     for one_version in versions:
-        # major_version = re.match(r"v\d+", one_version).group()
         try:
             major_version = re.match(r"v(\d+)\.(\d+)", one_version).groups()
         except AttributeError:
-            major_version = "0.0.0"
+            continue
         if "-" not in one_version:
             # filter alpha,beta...
             if (
