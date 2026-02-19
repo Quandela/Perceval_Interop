@@ -90,9 +90,7 @@ class MyQLMHelper:
 
     @staticmethod
     def parse_meta_data(obj, key: str, default = None):
-        if not hasattr(obj, "meta_data") or obj.meta_data is None:
-            return None
-        if key not in obj.meta_data:
+        if not hasattr(obj, "meta_data") or obj.meta_data is None or key not in obj.meta_data:
             return default
         return deserialize(json.loads(obj.meta_data[key]))
 
