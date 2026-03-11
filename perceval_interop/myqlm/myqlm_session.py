@@ -22,6 +22,7 @@
 
 from __future__ import annotations
 
+import time
 from typing import Any
 
 from qat.core.qpu import RemoteQPU
@@ -78,7 +79,7 @@ class RPCHandler:
         # TODO: make the job execution async ?
         res = self.remote_qpu.submit(my_qlm_job)
         if isinstance(res, AsyncResult):
-            res = res.join()
+            self._job_results[job_id] = res
         self._job_results[job_id] = {"results": res.meta_data[MyQLMHelper.RESULTS_KEY]}
         return job_id
 
@@ -90,7 +91,12 @@ class RPCHandler:
         """
         if job_id not in self._job_results:
             raise RuntimeError("The given job id does not exist")
-        return self._job_results[job_id]
+        res = self._job_results[job_id]
+        if isinstance(res, AsyncResult):
+            while res.ending_date is None:
+                time.sleep(1)
+            res = res.get_result()
+        return res
 
     def get_job_status(self, job_id: str) -> dict:
         """get the status of a job
@@ -105,7 +111,11 @@ class RPCHandler:
         raise NotImplementedError("rerun_job is not implemented for MyQLM Remote Processors")
 
     def cancel_job(self, job_id: str) -> None:
-        raise NotImplementedError("cancel_job is not implemented for MyQLM Remote Processors")
+        res = self._job_results[job_id]
+        if isinstance(res, AsyncResult):
+            res.cancel()
+        else:
+            raise NotImplementedError("cancel_job is not implemented for MyQLM Remote Processors")
 
 
 class MyQLMSession(ISession):
