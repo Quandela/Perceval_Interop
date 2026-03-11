@@ -76,7 +76,6 @@ class RPCHandler:
         my_qlm_job = MyQLMHelper.make_job_from_payload(payload)
         job_id = str(self._job_id)
         self._job_id += 1
-        # TODO: make the job execution async ?
         res = self.remote_qpu.submit(my_qlm_job)
         if isinstance(res, AsyncResult):
             self._job_results[job_id] = res
@@ -104,14 +103,22 @@ class RPCHandler:
         :param job_id: if of the job
         :return: status of the job
         """
-        status = "completed" if job_id in self._job_results else "waiting"  # Actually, else not sent, but this status doesn't exist
+        res = self._job_results.get(job_id)
+        if res is None:
+            raise RuntimeError("The given job id does not exist")
+        if isinstance(res, AsyncResult):
+            status = "completed" if res.ending_date is not None else "waiting"
+        else:
+            status = "completed" if job_id in self._job_results else "waiting"  # Actually, else not sent, but this status doesn't exist
         return {"status": status}
 
     def rerun_job(self, job_id: str) -> str:
         raise NotImplementedError("rerun_job is not implemented for MyQLM Remote Processors")
 
     def cancel_job(self, job_id: str) -> None:
-        res = self._job_results[job_id]
+        res = self._job_results.get(job_id)
+        if res is None:
+            raise RuntimeError("The given job id does not exist")
         if isinstance(res, AsyncResult):
             res.cancel()
         else:
