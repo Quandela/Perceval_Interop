@@ -19,6 +19,9 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import time
+
+from qat.comm.exceptions.ttypes import QPUException
 from qat.core import HardwareSpecs, Job as MyQLMJob, Result as MyQLMResult
 from qat.core.qpu import QPUHandler
 
@@ -79,32 +82,16 @@ class QuandelaQPUHandler(QPUHandler):
     >>> result = qpu.submit_job(myqlm_job)
     """
 
+    _VALID_STATUS = {"available", "computing", "calibration"}
+    _SLEEP_TIME = 1
+
     def __init__(self, remote_processor: RemoteProcessor):
         super().__init__()
         self.processor = remote_processor  # Used to get the specs
         self.handler = remote_processor.get_rpc_handler()  # Used to submit jobs
         self._job = None
 
-    def get_specs(self) -> HardwareSpecs:
-        """
-        Retrieve the specifications of the Quandela platform and store them in the metadata field of a myQLM
-        ``HardwareSpecs`` instance.
-
-        :return: Hardware specifications
-
-        Data is split into several chunks (some are optional, depending on the platform):
-
-        * Full specifications
-            * Available commands
-            * Chip architecture
-            * Platform custom options
-            * Platform documentation
-
-        * Platform name
-        * Latest auto-characterisation results (QPU performance - in terms of transmittance, g², HOM, etc.)
-        * Platform status (available, running, in maintenance...)
-        * Current job progress (float between 0 and 1, 1 meaning 100% or no job running)
-        """
+    def _get_specs(self) -> HardwareSpecs:
         hw = HardwareSpecs()
 
         # These fields are not supposed to change
@@ -130,21 +117,36 @@ class QuandelaQPUHandler(QPUHandler):
             MyQLMHelper.write_meta_data(hw, MyQLMHelper.WAITING_JOB_KEY, platform_details["waiting_jobs"])
         return hw
 
+    def get_specs(self) -> HardwareSpecs:
+        """
+        Retrieve the specifications of the Quandela platform and store them in the metadata field of a myQLM
+        ``HardwareSpecs`` instance.
+
+        :return: Hardware specifications
+
+        Data is split into several chunks (some are optional, depending on the platform):
+
+        * Full specifications
+            * Available commands
+            * Chip architecture
+            * Platform custom options
+            * Platform documentation
+
+        * Platform name
+        * Latest auto-characterisation results (QPU performance - in terms of transmittance, g², HOM, etc.)
+        * Platform status (available, running, in maintenance...)
+        * Current job progress (float between 0 and 1, 1 meaning 100% or no job running)
+        """
+        try:
+            return self._get_specs()
+
+        except Exception as e:
+            raise QPUException(str(e))
+
     def _get_progress(self):
         return self._job.status.progress if self._job is not None else 1.
 
-    def submit_job(self, job: MyQLMJob) -> MyQLMResult:
-        """
-        Submit a myQLM job to the Quandela platform.
-
-        :param job: A myQLM ``Job`` containing
-
-                    * either a photonic-compatible gate-based circuit
-                    * or a Perceval generated payload, stored in the job metadata
-
-        :return: A myQLM ``Result`` containing Perceval-like results in its metadata field
-        """
-
+    def _submit_job(self, job: MyQLMJob) -> MyQLMResult:
         if job.circuit is not None and job.nbshots:
             converter = MyQLMConverter()
             p = converter.convert(job.circuit, use_postselection=True)
@@ -169,7 +171,7 @@ class QuandelaQPUHandler(QPUHandler):
             platform_details = self.handler.fetch_platform_details()
         except HTTPError:
             raise RuntimeError("Platform is not available")
-        if platform_details.get("status") != 'available':
+        if platform_details.get("status") not in self._VALID_STATUS:
             raise RuntimeError("Platform is not available")
 
         job_name = full_payload['payload'].get("job_name", full_payload['payload'].get("command", "Job"))
@@ -180,8 +182,19 @@ class QuandelaQPUHandler(QPUHandler):
 
         self._job = RemoteJob(full_payload, self.handler, job_name)
         try:
-            pcvl_results = self._job.execute_sync()
-        except Exception:
+            self._job.execute_async()
+
+            while not self._job.is_complete:
+                platform_details = self.handler.fetch_platform_details()
+                if platform_details.get("status") not in self._VALID_STATUS:
+                    self._job.cancel()
+                    raise RuntimeError("Platform was made unavailable during job completion; Job has been canceled")
+
+                time.sleep(self._SLEEP_TIME)
+
+            pcvl_results = self._job.get_results()
+
+        except:
             if self._job.status.failed:
                 get_logger().warn(f'The job failed: {self._job.status.stop_message}', channel.user)
                 pcvl_results = {'error': self._job.status.stop_message}
@@ -197,3 +210,21 @@ class QuandelaQPUHandler(QPUHandler):
         # Note: we could avoid a deserialization/serialization
         MyQLMHelper.write_meta_data(result, MyQLMHelper.RESULTS_KEY, pcvl_results)
         return result
+
+    def submit_job(self, job: MyQLMJob) -> MyQLMResult:
+        """
+        Submit a myQLM job to the Quandela platform.
+
+        :param job: A myQLM ``Job`` containing
+
+                    * either a photonic-compatible gate-based circuit
+                    * or a Perceval generated payload, stored in the job metadata
+
+        :return: A myQLM ``Result`` containing Perceval-like results in its metadata field
+        """
+
+        try:
+            return self._submit_job(job)
+
+        except Exception as e:
+            raise QPUException(str(e))
