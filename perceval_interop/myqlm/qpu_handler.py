@@ -21,7 +21,7 @@
 # SOFTWARE.
 import time
 
-from qat.comm.exceptions.ttypes import QPUException
+from qat.comm.exceptions.ttypes import QPUException, ErrorType
 from qat.core import HardwareSpecs, Job as MyQLMJob, Result as MyQLMResult
 from qat.core.qpu import QPUHandler
 
@@ -141,7 +141,7 @@ class QuandelaQPUHandler(QPUHandler):
             return self._get_specs()
 
         except Exception as e:
-            raise QPUException(str(e))
+            raise QPUException(code=ErrorType.ABORT, modulename="QuandelaQPUHandler", message=str(e)) # Error ABORT (code 1) raised when the execution is stopped
 
     def _get_progress(self):
         return self._job.status.progress if self._job is not None else 1.
@@ -230,4 +230,4 @@ class QuandelaQPUHandler(QPUHandler):
             return self._submit_job(job)
 
         except Exception as e:
-            raise QPUException(code=1, modulename="QuandelaQPUHandler", message=str(e)) # Error ABORT (code 1) raised when the execution is stopped
+            raise QPUException(code=ErrorType.ABORT, modulename="QuandelaQPUHandler", message=str(e)) # Error ABORT (code 1) raised when the execution is stopped
