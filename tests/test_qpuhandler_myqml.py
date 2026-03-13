@@ -40,12 +40,14 @@ except ModuleNotFoundError as e:
 
 class _MockRPCHandler(RPCHandler):
 
+    JOB_ID = "123"
+
     def __init__(self, name):
         super().__init__(name, "no_url", "no_token")
         self._results = BSDistribution({FockState([1, 0]): 1})
 
     def create_job(self, payload) -> str:
-        return "0"
+        return _MockRPCHandler.JOB_ID
 
     def get_job_status(self, id: str) -> dict:
         return {'status': 'completed'}
@@ -58,7 +60,7 @@ class _MockRPCHandler(RPCHandler):
 
     @property
     def results(self):
-        return {"results": self._results}
+        return {"results": self._results, "job_id": _MockRPCHandler.JOB_ID, "job_duration": 0}
 
 
 class _MockRemoteProcessor(RemoteProcessor):
