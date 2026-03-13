@@ -194,6 +194,9 @@ class QuandelaQPUHandler(QPUHandler):
 
             pcvl_results = self._job.get_results()
 
+        except KeyboardInterrupt:
+            self._job.cancel()
+            raise RuntimeError("Job has been canceled.")
         except:
             if self._job.status.failed:
                 get_logger().warn(f'The job failed: {self._job.status.stop_message}', channel.user)
@@ -227,4 +230,4 @@ class QuandelaQPUHandler(QPUHandler):
             return self._submit_job(job)
 
         except Exception as e:
-            raise QPUException(str(e))
+            raise QPUException(code=1, modulename="QuandelaQPUHandler", message=str(e)) # Error ABORT (code 1) raised when the execution is stopped
