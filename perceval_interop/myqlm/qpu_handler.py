@@ -204,6 +204,9 @@ class QuandelaQPUHandler(QPUHandler):
         if job_context is not None:
             pcvl_results["job_context"] = job_context
 
+        pcvl_results["job_id"] = self._job.id
+        pcvl_results["job_duration"] = self._job.status.duration
+
         self._job = None
 
         result = MyQLMResult()
