@@ -82,7 +82,7 @@ class QuandelaQPUHandler(QPUHandler):
     >>> result = qpu.submit_job(myqlm_job)
     """
 
-    _VALID_STATUS = {"available", "computing", "calibration"}
+    _VALID_STATUS = {"available", "computing", "calibration", "running"}
     _SLEEP_TIME = 1
 
     def __init__(self, remote_processor: RemoteProcessor):
