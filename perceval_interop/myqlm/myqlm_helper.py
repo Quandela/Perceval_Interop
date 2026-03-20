@@ -141,7 +141,7 @@ class MyQLMHelper:
         :return: The type of the QPU (physical or simulator)
         """
         assert MyQLMHelper.TYPE_KEY in hw.meta_data, "Hardware specs don't come from a quandela qpu"
-        return hw.meta_data[MyQLMHelper.TYPE_KEY]
+        return MyQLMHelper.parse_meta_data(hw, MyQLMHelper.TYPE_KEY)
 
     @staticmethod
     def retrieve_perf(hw: HardwareSpecs) -> dict:
