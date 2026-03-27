@@ -19,17 +19,28 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+extra_name = "qiskit"
+
 try:
-
     from .qiskit_converter import QiskitConverter
-    from .converter_statevector import StatevectorConverter
-    from .circuit_to_graph_converter import CircuitToGraphConverter
-    from .resources_estimator import ResourcesEstimator
-
 except ModuleNotFoundError:
     from perceval_interop.utils import MissingDependency
-    extra_name = "qiskit"
     QiskitConverter = MissingDependency("QiskitConverter", extra_name)
+
+try:
+    from .converter_statevector import StatevectorConverter
+except ModuleNotFoundError:
+    from perceval_interop.utils import MissingDependency
     StatevectorConverter = MissingDependency("StatevectorConverter", extra_name)
+
+try:
+    from .circuit_to_graph_converter import CircuitToGraphConverter
+except ModuleNotFoundError:
+    from perceval_interop.utils import MissingDependency
     CircuitToGraphConverter = MissingDependency("CircuitToGraphConverter", extra_name)
+
+try:
+    from .resources_estimator import ResourcesEstimator
+except ModuleNotFoundError:
+    from perceval_interop.utils import MissingDependency
     ResourcesEstimator = MissingDependency("ResourcesEstimator", extra_name)
