@@ -79,7 +79,8 @@ class RPCHandler:
         res = self.remote_qpu.submit(my_qlm_job)
         if isinstance(res, AsyncResult):
             self._job_results[job_id] = res
-        self._job_results[job_id] = {"results": res.meta_data[MyQLMHelper.RESULTS_KEY]}
+        else:
+            self._job_results[job_id] = {"results": res.meta_data[MyQLMHelper.RESULTS_KEY]}
         return job_id
 
     def get_job_results(self, job_id: str) -> dict:
