@@ -95,7 +95,7 @@ class RPCHandler:
         if isinstance(res, AsyncResult):
             while res.ending_date is None:
                 time.sleep(1)
-            res = res.get_result()
+            res = {"results": res.meta_data[MyQLMHelper.RESULTS_KEY]}
         return res
 
     def get_job_status(self, job_id: str) -> dict:
