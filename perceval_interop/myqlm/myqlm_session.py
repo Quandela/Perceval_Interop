@@ -134,7 +134,7 @@ class MyQLMSession(ISession):
 
         - Being used in a JobGroup
         - Retrieving a job from its id (so a job is lost forever if python stops)
-        - Some advanced job methods (cancel, rerun...)
+        - Some advanced job methods (rerun...)
         - Jobs will always be executed synchronously
 
     Usage:
