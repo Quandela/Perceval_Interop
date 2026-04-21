@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import time
+import traceback
 
 from qat.comm.exceptions.ttypes import QPUException, ErrorType
 from qat.core import HardwareSpecs, Job as MyQLMJob, Result as MyQLMResult
@@ -193,16 +194,20 @@ class QuandelaQPUHandler(QPUHandler):
                 time.sleep(self._SLEEP_TIME)
 
             pcvl_results = self._job.get_results()
+            get_logger().debug("Results obtained from the job")
 
         except KeyboardInterrupt:
             self._job.cancel()
             raise RuntimeError("Job has been canceled.")
-        except:
+        except Exception as e:
             if self._job.status.failed:
                 get_logger().warn(f'The job failed: {self._job.status.stop_message}', channel.user)
                 pcvl_results = {'error': self._job.status.stop_message}
             else:
-                raise
+                try:
+                    self._job.cancel()
+                finally:
+                    raise e
 
         if job_context is not None:
             pcvl_results["job_context"] = job_context
@@ -230,7 +235,12 @@ class QuandelaQPUHandler(QPUHandler):
         """
 
         try:
-            return self._submit_job(job)
+            get_logger().info("Got a new job", channel.user)
+            res = self._submit_job(job)
+            get_logger().info("Job finished successfully", channel.user)
+            return res
 
         except Exception as e:
+            get_logger().error(f"The job failed: {type(e).__name__}: {e}", channel.user)
+            get_logger().error(traceback.format_exc(), channel.user)
             raise QPUException(code=ErrorType.ABORT, modulename="QuandelaQPUHandler", message=str(e)) # Error ABORT (code 1) raised when the execution is stopped
