@@ -206,8 +206,9 @@ class QuandelaQPUHandler(QPUHandler):
             else:
                 try:
                     self._job.cancel()
-                finally:
-                    raise e
+                except Exception as cancel_error:
+                    raise cancel_error from e
+                raise e
 
         if job_context is not None:
             pcvl_results["job_context"] = job_context
