@@ -175,7 +175,10 @@ class QuandelaQPUHandler(QPUHandler):
         if platform_details.get("status") not in self._VALID_STATUS:
             raise RuntimeError("Platform is not available")
 
-        command = full_payload['payload'].get("command", "samples")
+        if "command" not in full_payload['payload']:
+            raise ValueError("Did not receive any command")
+
+        command = full_payload['payload']["command"]
         if command not in self.processor.available_commands:
             raise ValueError(f"Received unknown command {command} - Possible commands are {self.processor.available_commands}")
 
