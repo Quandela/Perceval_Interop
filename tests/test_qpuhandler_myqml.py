@@ -117,7 +117,7 @@ def test_user_stack():
     exp.min_detected_photons_filter(2)
 
     # First, turn the experiment into a MyQLM serializable Job
-    command = "sample_count"
+    command = "probs"
     job = MyQLMHelper.make_job(command, exp, max_shots=10_000_000)
 
     assert isinstance(job, Job)
