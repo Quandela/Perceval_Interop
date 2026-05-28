@@ -21,6 +21,7 @@
 # SOFTWARE.
 import json
 import os
+import signal
 
 import pytest
 from perceval import RemoteProcessor, Experiment, Matrix, Unitary, BasicState, PayloadGenerator, NoiseModel, \
@@ -160,3 +161,64 @@ def test_session():
     # Check that the Sampler's automatic conversion has been correctly applied
     assert isinstance(perceval_results["results"], BSSamples)
     assert len(perceval_results["results"]) == 1000
+
+
+def test_sigterm_cancels_running_job():
+    class _CancelableJob:
+        def __init__(self):
+            self.cancel_called = False
+
+        def cancel(self):
+            self.cancel_called = True
+
+    mock_rp = _MockRemoteProcessor("sim:test")
+    handler = QuandelaQPUHandler(mock_rp)
+    running_job = _CancelableJob()
+
+    handler._job = running_job
+    handler._handle_sigterm(signal.SIGTERM, None)
+
+    assert running_job.cancel_called
+    assert handler._job_cancel_requested
+
+
+def test_stoppable_serve_installs_sigterm_handler(monkeypatch):
+    mock_rp = _MockRemoteProcessor("sim:test")
+    handler = QuandelaQPUHandler(mock_rp)
+    calls = []
+
+    def _install_sigterm_handler():
+        calls.append("install")
+        return "previous_handler"
+
+    def _restore_sigterm_handler(previous_handler):
+        calls.append(("restore", previous_handler))
+
+    def _serve(self, port, host_ip="localhost", server_type=None, ssl_cert=None, ssl_key=None, ssl_ca=None):
+        calls.append(("serve", port, host_ip, server_type, ssl_cert, ssl_key, ssl_ca))
+        return "served"
+
+    monkeypatch.setattr(handler, "_install_sigterm_handler", _install_sigterm_handler)
+    monkeypatch.setattr(handler, "_restore_sigterm_handler", _restore_sigterm_handler)
+    monkeypatch.setattr(QuandelaQPUHandler.__mro__[1], "serve", _serve)
+
+    assert handler.serve(1234, host_ip="0.0.0.0", server_type="stoppable",
+                         ssl_cert="cert", ssl_key="key", ssl_ca="ca") == "served"
+    assert calls == [
+        "install",
+        ("serve", 1234, "0.0.0.0", "stoppable", "cert", "key", "ca"),
+        ("restore", "previous_handler")
+    ]
+
+
+def test_threaded_serve_is_refused(monkeypatch):
+    mock_rp = _MockRemoteProcessor("sim:test")
+    handler = QuandelaQPUHandler(mock_rp)
+
+    def _serve(*args, **kwargs):
+        raise AssertionError("Base serve should not be called")
+
+    monkeypatch.setattr(QuandelaQPUHandler.__mro__[1], "serve", _serve)
+
+    with pytest.raises(ValueError, match='server_type="threaded"'):
+        handler.serve(1234, server_type="threaded")
