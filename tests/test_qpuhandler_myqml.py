@@ -24,12 +24,12 @@ import os
 
 import pytest
 from perceval import RemoteProcessor, Experiment, Matrix, Unitary, BasicState, PayloadGenerator, NoiseModel, \
-    BSDistribution, FockState, ProviderFactory, BSSamples
+    BSDistribution, FockState, ProviderFactory, BSSamples, SimulatedComputer, RemoteComputer
 from perceval.algorithm import Sampler
-from perceval.runtime.rpc_handler import RPCHandler
+from perceval.providers.quandela.rpc_handler import RPCHandler
 from perceval.serialization import serialize
 
-from perceval_interop import QuandelaQPUHandler, MyQLMHelper
+from perceval_interop import QuandelaQPUHandler, MyQLMHelper, QuandelaQPUHandlerNEW, MyQLMCommunicationLayer
 
 try:
     from qat.core import HardwareSpecs, Job
@@ -160,3 +160,19 @@ def test_session():
     # Check that the Sampler's automatic conversion has been correctly applied
     assert isinstance(perceval_results["results"], BSSamples)
     assert len(perceval_results["results"]) == 1000
+
+
+def test_communication_layer():
+    computer = SimulatedComputer("SLOS")
+
+    handler = QuandelaQPUHandlerNEW(computer)
+    comm_layer = MyQLMCommunicationLayer(handler)
+    remote_computer = RemoteComputer(comm_layer)
+
+    computer_specs = computer.specs
+    computer_specs["type"] = computer.type.name
+
+    assert remote_computer.specs == computer_specs
+    assert remote_computer.name == computer.name
+    assert remote_computer.status == computer.status
+    assert remote_computer.type == computer.type

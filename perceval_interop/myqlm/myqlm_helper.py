@@ -21,9 +21,14 @@
 # SOFTWARE.
 
 import json
-from perceval import Experiment, PayloadGenerator
+from datetime import datetime
+from typing import Any
+
+from perceval import Experiment, PayloadGenerator, RunningStatus, ExecutionStatus
 from perceval.serialization import serialize, deserialize
+from qat.comm.qlmaas.ttypes import JobStatus, JobInfo
 from qat.core import HardwareSpecs, Job as MyQLMJob, Result as MyQLMResult
+from qat.qlmaas.result import AsyncResult
 
 
 class MyQLMHelper:
@@ -54,6 +59,7 @@ class MyQLMHelper:
     >>> results = MyQLMHelper.retrieve_results(my_qlm_results)  # Regular results as in any perceval's Sampler results
     """
 
+    NAME_KEY = "name"
     PAYLOAD_KEY = "perceval_payload"
     SPECS_KEY = "platform_specs"
     PERF_KEY = "platform_perf"
@@ -62,11 +68,12 @@ class MyQLMHelper:
     STATUS_KEY = "platform_status"
     PROGRESS_KEY = "current_job_progress"
     WAITING_JOB_KEY = "platform_waiting_jobs"
+    AVAILABLE_JOBS_KEY = "available_jobs"
 
     @staticmethod
     def make_job(command: str,
                  experiment: Experiment,
-                 params: dict[str, any] = None,
+                 params: dict[str, Any] = None,
                  platform_name: str = "",
                  **kwargs) -> MyQLMJob:
         """
@@ -92,7 +99,7 @@ class MyQLMHelper:
     def parse_meta_data(obj, key: str, default = None):
         if not hasattr(obj, "meta_data") or obj.meta_data is None or key not in obj.meta_data:
             return default
-        return deserialize(json.loads(obj.meta_data[key]))
+        return deserialize(json.loads(obj.meta_data[key]), strict=False)
 
     @staticmethod
     def write_meta_data(obj, key: str, value):
@@ -101,7 +108,7 @@ class MyQLMHelper:
         obj.meta_data[key] = json.dumps(serialize(value))
 
     @staticmethod
-    def retrieve_results(results: MyQLMResult) -> dict:
+    def retrieve_results(results: MyQLMResult | AsyncResult) -> dict:
         """
         >>> from perceval_interop import MyQLMHelper
         >>> myqlm_result = qpu.submit_job(myqlm_job)
@@ -159,7 +166,7 @@ class MyQLMHelper:
         return MyQLMHelper.parse_meta_data(hw, MyQLMHelper.PERF_KEY)
 
     @staticmethod
-    def retrieve_status(hw: HardwareSpecs) -> dict:
+    def retrieve_status(hw: HardwareSpecs) -> str:
         """
         >>> from perceval_interop import MyQLMHelper
         >>> from qat.qpus import RemoteQPU
@@ -201,3 +208,71 @@ class MyQLMHelper:
         :return: The number of jobs currently in queue on the QPU, or None if the Hardware specs don't contain this information
         """
         return MyQLMHelper.parse_meta_data(hw, MyQLMHelper.WAITING_JOB_KEY) if MyQLMHelper.WAITING_JOB_KEY in hw.meta_data else None
+
+
+    @staticmethod
+    def retrieve_name(hw: HardwareSpecs) -> str:
+        """
+        >>> from perceval_interop import MyQLMHelper
+        >>> from qat.qpus import RemoteQPU
+        >>> qpu = RemoteQPU(1212, "middleware.host.address")  # Assuming this is a remote QuandelaQPUHandler
+        >>> hardware_specs = qpu.get_specs()
+        >>> remote_name = MyQLMHelper.retrieve_name(hardware_specs)
+
+        :param hw: A HardwareSpecs instance got from requesting the specs from a Quandela QPU
+        :return: The name of the perceval computer contained in the QPU,
+           or an empty string if the Hardware specs don't contain this information
+        """
+        return MyQLMHelper.parse_meta_data(hw, MyQLMHelper.NAME_KEY) if MyQLMHelper.NAME_KEY in hw.meta_data else ""
+
+    @staticmethod
+    def retrieve_availability(hw: HardwareSpecs) -> int:
+        """
+        >>> from perceval_interop import MyQLMHelper
+        >>> from qat.qpus import RemoteQPU
+        >>> qpu = RemoteQPU(1212, "middleware.host.address")  # Assuming this is a remote QuandelaQPUHandler
+        >>> hardware_specs = qpu.get_specs()
+        >>> availability = MyQLMHelper.retrieve_availability(hardware_specs)
+
+        :param hw: A HardwareSpecs instance got from requesting the specs from a Quandela QPU
+        :return: The number of parallel jobs that can currently be launched to the QPU,
+           or 1 if the Hardware specs don't contain this information
+        """
+        return MyQLMHelper.parse_meta_data(hw, MyQLMHelper.AVAILABLE_JOBS_KEY) if MyQLMHelper.NAME_KEY in hw.meta_data else 1
+
+    @staticmethod
+    def running_status_from_myqlm(job_status: JobStatus) -> RunningStatus:
+        mapping = {
+            JobStatus.WAITING: RunningStatus.WAITING,
+            JobStatus.RUNNING: RunningStatus.RUNNING,
+            JobStatus.DONE: RunningStatus.SUCCESS,
+            JobStatus.CANCELLED: RunningStatus.CANCELED,
+            JobStatus.UNKNOWN_JOB: RunningStatus.UNKNOWN,
+            JobStatus.IN_BUCKET: RunningStatus.WAITING,  # TODO: clarify the meaning of IN_BUCKET
+            JobStatus.DELETED: RunningStatus.CANCELED,
+            JobStatus.STOPPED: RunningStatus.SUSPENDED,  # TODO: can a STOPPED status be resumed? If not, better set CANCELED
+            JobStatus.FAILED: RunningStatus.ERROR
+        }
+
+        return mapping.get(job_status, RunningStatus.UNKNOWN)
+
+    @staticmethod
+    def _datetime_to_timestamp(s: str):
+        # TODO: check format
+        dt = datetime.strptime(s, "%Y-%m-%d %H:%M:%S")
+        return dt.timestamp()
+
+    @staticmethod
+    def execution_status_from_myqlm(job_info: JobInfo, progress: float | None) -> ExecutionStatus:
+        status = ExecutionStatus()
+        status.status = MyQLMHelper.running_status_from_myqlm(job_info.status)
+
+        if (status.running or status.completed) and progress is not None:
+            status.update_progress(progress)  # We can't get the progress anywhere :(
+        if status.failed:
+            status._message = job_info.message
+
+        status.update_times(MyQLMHelper._datetime_to_timestamp(job_info.submission_date),
+                            MyQLMHelper._datetime_to_timestamp(job_info.starting_date),
+                            MyQLMHelper._datetime_to_timestamp(job_info.ending_date))
+        return status

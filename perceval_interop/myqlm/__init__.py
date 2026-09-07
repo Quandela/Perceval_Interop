@@ -24,11 +24,16 @@ try:
     from .myqlm_helper import MyQLMHelper
     from .qpu_handler import QuandelaQPUHandler
     from .myqlm_session import MyQLMSession
+    from .myqlm_communication_layer import MyQLMCommunicationLayer
+    from .qpu_handler_2 import QuandelaQPUHandler as QuandelaQPUHandlerNEW
 
-except ModuleNotFoundError:
+except ModuleNotFoundError as e:
     from perceval_interop.utils import MissingDependency
-    extra_name = "myqlm"
-    MyQLMConverter = MissingDependency("MyQLMConverter", extra_name)
-    MyQLMHelper = MissingDependency("MyQLMHelper", extra_name)
-    QuandelaQPUHandler = MissingDependency("QuandelaQPUHandler", extra_name)
-    MyQLMSession = MissingDependency("MyQLMSession", extra_name)
+    if "qat" in str(e):
+        extra_name = "myqlm"
+        MyQLMConverter = MissingDependency("MyQLMConverter", extra_name)
+        MyQLMHelper = MissingDependency("MyQLMHelper", extra_name)
+        QuandelaQPUHandler = MissingDependency("QuandelaQPUHandler", extra_name)
+        MyQLMSession = MissingDependency("MyQLMSession", extra_name)
+    else:
+        raise e
