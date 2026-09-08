@@ -25,7 +25,7 @@ from datetime import datetime
 from typing import Any
 
 from perceval import Experiment, PayloadGenerator, RunningStatus, ExecutionStatus
-from perceval.serialization import serialize, deserialize
+from perceval.serialization import serialize, deserialize, OutputArchive, Serialization
 from qat.comm.qlmaas.ttypes import JobStatus, JobInfo
 from qat.core import HardwareSpecs, Job as MyQLMJob, Result as MyQLMResult
 from qat.qlmaas.result import AsyncResult
@@ -71,6 +71,12 @@ class MyQLMHelper:
     AVAILABLE_JOBS_KEY = "available_jobs"
 
     @staticmethod
+    def _serialize(obj):
+        archive = OutputArchive()
+        Serialization.serialize(obj, archive)
+        return archive.to_text()
+
+    @staticmethod
     def make_job(command: str,
                  experiment: Experiment,
                  params: dict[str, Any] = None,
@@ -102,10 +108,14 @@ class MyQLMHelper:
         return deserialize(json.loads(obj.meta_data[key]), strict=False)
 
     @staticmethod
-    def write_meta_data(obj, key: str, value):
+    def write_meta_data(obj, key: str, value, use_archive=False):
         if not hasattr(obj, "meta_data") or not obj.meta_data:
             obj.meta_data = {}
-        obj.meta_data[key] = json.dumps(serialize(value))
+        if use_archive:
+            serial = MyQLMHelper._serialize(value)
+        else:
+            serial = serialize(value)
+        obj.meta_data[key] = json.dumps(serial)
 
     @staticmethod
     def retrieve_results(results: MyQLMResult | AsyncResult) -> dict:

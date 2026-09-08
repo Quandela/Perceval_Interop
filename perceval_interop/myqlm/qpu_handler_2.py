@@ -97,8 +97,8 @@ class QuandelaQPUHandler(QPUHandler):
     def _get_specs(self) -> HardwareSpecs:
         hw = HardwareSpecs()
 
-        MyQLMHelper.write_meta_data(hw, MyQLMHelper.SPECS_KEY, self.computer.specs)
-        MyQLMHelper.write_meta_data(hw, MyQLMHelper.TYPE_KEY, self.computer.type.name)
+        MyQLMHelper.write_meta_data(hw, MyQLMHelper.SPECS_KEY, self.computer.specs, use_archive=True)
+        MyQLMHelper.write_meta_data(hw, MyQLMHelper.TYPE_KEY, self.computer.type.name)  # For legacy clients
         MyQLMHelper.write_meta_data(hw, MyQLMHelper.STATUS_KEY, self.computer.status)
         MyQLMHelper.write_meta_data(hw, MyQLMHelper.PERF_KEY, self.computer.performance)
         MyQLMHelper.write_meta_data(hw, MyQLMHelper.PROGRESS_KEY, self._get_progress())

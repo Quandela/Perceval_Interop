@@ -24,7 +24,7 @@ import os
 
 import pytest
 from perceval import RemoteProcessor, Experiment, Matrix, Unitary, BasicState, PayloadGenerator, NoiseModel, \
-    BSDistribution, FockState, ProviderFactory, BSSamples, SimulatedComputer, RemoteComputer
+    BSDistribution, FockState, ProviderFactory, BSSamples, SimulatedComputer, RemoteComputer, ExecutionFactory
 from perceval.algorithm import Sampler
 from perceval.providers.quandela.rpc_handler import RPCHandler
 from perceval.serialization import serialize
@@ -169,10 +169,24 @@ def test_communication_layer():
     comm_layer = MyQLMCommunicationLayer(handler)
     remote_computer = RemoteComputer(comm_layer)
 
-    computer_specs = computer.specs
-    computer_specs["type"] = computer.type.name
+    # Command doesn't implement __eq__
+    remote_specs = remote_computer.specs
+    specs = computer.specs
 
-    assert remote_computer.specs == computer_specs
+    remote_commands = remote_specs.pop("commands")
+    commands = specs.pop("commands")
+
+    assert str(remote_commands) == str(commands)
+    assert remote_specs == specs
     assert remote_computer.name == computer.name
     assert remote_computer.status == computer.status
     assert remote_computer.type == computer.type
+
+    experiment = Experiment(Unitary.random(8))
+    experiment.with_input(BasicState([1, 0] * 4))
+    experiment.min_detected_photons_filter(2)
+
+    factory = ExecutionFactory(remote_computer, experiment, max_shots_per_call=10_000)
+    results = factory.samples(1000)
+    assert isinstance(results["results"], BSSamples)
+    assert len(results["results"]) == 1000

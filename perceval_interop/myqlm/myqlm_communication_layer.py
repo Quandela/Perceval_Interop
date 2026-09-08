@@ -26,7 +26,7 @@ from typing import TypeAlias
 
 from perceval import CommunicationLayer, PlatformSpecs, get_logger, PayloadUpdater, ExecutionStatus, \
     RunningStatus, CommandFactory, Command
-from perceval.serialization import OutputArchive, Serialization, InputArchive
+from perceval.serialization import OutputArchive, Serialization, InputArchive, ClassRegistry, DescriptorClass
 from perceval.utils.constants import KEY_JOB_CONTEXT, KEY_RESULT_MAPPING, KEY_MAPPING_PARAMETERS, KEY_RESULTS_LIST, \
     KEY_ITERATION, KEY_RESULTS, KEY_GLOBAL_PERF, KEY_PHYSICAL_PERF, KEY_LOGICAL_PERF
 from perceval.utils.logging import channel
@@ -74,7 +74,6 @@ class MyQLMCommunicationLayer(CommunicationLayer):
 
         self._status = MyQLMHelper.retrieve_status(all_specs)
         self._specs = PlatformSpecs(MyQLMHelper.retrieve_specs(all_specs))
-        self._specs["type"] = MyQLMHelper.retrieve_type(all_specs)
         self._perfs.update(MyQLMHelper.retrieve_perf(all_specs))
         self._name = MyQLMHelper.retrieve_name(all_specs)  # Will remain empty if the target is not up-to-date
 
@@ -206,17 +205,26 @@ class MyQLMCommunicationLayer(CommunicationLayer):
 
 
 # Serialization - We need to be able to get the RemoteId, and the remote qpu
+def write_qpu(qpu: RemoteQPU, archive: OutputArchive):
+    t = ClassRegistry.get_by_class(RemoteQPU)
+    # Note: I don't know how to read and store the following optional parameters:
+    # ssl_cert, ssl_key, check_server_cert
+    # Let's stick to the basic parameters
+    children = [qpu.connection.port, qpu.connection.ip]
 
-# Note: I don't know how to read and store the following optional parameters:
-# ssl_cert, ssl_key, check_server_cert
-# Let's stick to the basic parameters
+    archive.pre_record(children)
+
+    return (
+        DescriptorClass(t.class_version, [("port", archive.get_index(children[0])), ("ip", archive.get_index(children[1]))]),
+        children)
+
+
 def read_qpu(qpu: RemoteQPU, archive: InputArchive, members, version: int):
     RemoteQPU.__init__(qpu, *(archive.create(members[i][1]) for i in range(len(members))))
 
 
 Serialization.register_class(RemoteQPU,
-                             class_serial_members_write=lambda qpu, archive: archive.save_attr(
-                                 qpu.connection, ["port", "ip"]),
+                             class_serial_members_write=write_qpu,
                              class_serial_members_read=read_qpu,
                              tag="MyQLM_RemoteQPU")
 
