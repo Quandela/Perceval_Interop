@@ -20,9 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import time
 import uuid
-from typing import TypeAlias
+from typing import TypeAlias, Any
 
 from perceval import CommunicationLayer, PlatformSpecs, get_logger, PayloadUpdater, ExecutionStatus, \
     RunningStatus, CommandFactory, Command
@@ -30,8 +29,10 @@ from perceval.serialization import OutputArchive, Serialization, InputArchive, C
 from perceval.utils.constants import KEY_JOB_CONTEXT, KEY_RESULT_MAPPING, KEY_MAPPING_PARAMETERS, KEY_RESULTS_LIST, \
     KEY_ITERATION, KEY_RESULTS, KEY_GLOBAL_PERF, KEY_PHYSICAL_PERF, KEY_LOGICAL_PERF
 from perceval.utils.logging import channel
+
 from qat.core.qpu import RemoteQPU
 from qat.qlmaas.result import AsyncResult
+
 from requests import HTTPError
 
 from .myqlm_helper import MyQLMHelper
@@ -52,6 +53,8 @@ class MyQLMCommunicationLayer(CommunicationLayer):
         self._progress = 0
         self._name = ""
         self._available_jobs = 1
+        self._job_in_queue: int | None = None
+        self._platform_details: dict[str, Any] = {}
 
         self._results_cache = {}  # TODO: store this in a file instead of instance?
 
@@ -77,13 +80,15 @@ class MyQLMCommunicationLayer(CommunicationLayer):
         self._perfs.update(MyQLMHelper.retrieve_perf(all_specs))
         self._name = MyQLMHelper.retrieve_name(all_specs)  # Will remain empty if the target is not up-to-date
 
-        # TODO + Can we do something from this ?
-        # self._job_in_queue = MyQLMHelper.retrieve_job_in_queue(all_specs)
+        self._platform_details = MyQLMHelper.retrieve_details(all_specs)
         self._available_jobs = MyQLMHelper.retrieve_availability(all_specs)
         self._progress = MyQLMHelper.retrieve_progress(all_specs)
 
     def get_specs(self) -> PlatformSpecs:
         return self._specs
+
+    def get_platform_details(self) -> dict:
+        return self._platform_details
 
     @staticmethod
     def _serialize(obj):
@@ -228,15 +233,23 @@ Serialization.register_class(RemoteQPU,
                              class_serial_members_read=read_qpu,
                              tag="MyQLM_RemoteQPU")
 
+def write_async_result(async_result: AsyncResult, archive: OutputArchive):
+    t = ClassRegistry.get_by_class(AsyncResult)
+    children = [async_result.get_info().id]
+    archive.pre_record(children)
+
+    return (
+        DescriptorClass(t.class_version, [("id", archive.get_index(children[0]))]),
+        children)
+
 
 def read_async_result(async_result: AsyncResult, archive: InputArchive, members, version: int):
+    job_id = archive.create(members[0][1])
     # TODO
-    pass
 
 
 Serialization.register_class(AsyncResult,
-                             class_serial_members_write=lambda res, archive:
-                                archive.save_attr(res.get_info(), ["id"]),
+                             class_serial_members_write=write_async_result,
                              class_serial_members_read=read_async_result,
                              tag="MyQLM_AsyncResult")
 

@@ -24,7 +24,7 @@ import traceback
 from copy import copy
 
 from perceval.algorithm.processor_compatibility import computer_from_processor
-from perceval.runtime import communication_layer
+from perceval.runtime.platform_specs import serialize_specs_backward_compatibility
 from qat.comm.exceptions.ttypes import QPUException, ErrorType
 from qat.core import HardwareSpecs, Job as MyQLMJob, Result as MyQLMResult
 from qat.core.qpu import QPUHandler
@@ -97,17 +97,17 @@ class QuandelaQPUHandler(QPUHandler):
     def _get_specs(self) -> HardwareSpecs:
         hw = HardwareSpecs()
 
-        MyQLMHelper.write_meta_data(hw, MyQLMHelper.SPECS_KEY, self.computer.specs, use_archive=True)
+        MyQLMHelper.write_meta_data(hw, MyQLMHelper.SPECS_KEY, serialize_specs_backward_compatibility(self.computer.specs))
         MyQLMHelper.write_meta_data(hw, MyQLMHelper.TYPE_KEY, self.computer.type.name)  # For legacy clients
         MyQLMHelper.write_meta_data(hw, MyQLMHelper.STATUS_KEY, self.computer.status)
         MyQLMHelper.write_meta_data(hw, MyQLMHelper.PERF_KEY, self.computer.performance)
         MyQLMHelper.write_meta_data(hw, MyQLMHelper.PROGRESS_KEY, self._get_progress())
         MyQLMHelper.write_meta_data(hw, MyQLMHelper.NAME_KEY, self.computer.name)
         MyQLMHelper.write_meta_data(hw, MyQLMHelper.AVAILABLE_JOBS_KEY, self.computer.available_jobs)
+        MyQLMHelper.write_meta_data(hw, MyQLMHelper.DETAILS_KEY, self.computer.details, use_archive=True)
 
-        # TODO: how to get this?
-        # if "waiting_jobs" in platform_details:
-        #     MyQLMHelper.write_meta_data(hw, MyQLMHelper.WAITING_JOB_KEY, platform_details["waiting_jobs"])
+        if "waiting_jobs" in self.computer.details:    # For legacy clients
+            MyQLMHelper.write_meta_data(hw, MyQLMHelper.WAITING_JOB_KEY, self.computer.details["waiting_jobs"])
         return hw
 
     def get_specs(self) -> HardwareSpecs:

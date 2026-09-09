@@ -69,6 +69,7 @@ class MyQLMHelper:
     PROGRESS_KEY = "current_job_progress"
     WAITING_JOB_KEY = "platform_waiting_jobs"
     AVAILABLE_JOBS_KEY = "available_jobs"
+    DETAILS_KEY = "platform_details"
 
     @staticmethod
     def _serialize(obj):
@@ -219,7 +220,6 @@ class MyQLMHelper:
         """
         return MyQLMHelper.parse_meta_data(hw, MyQLMHelper.WAITING_JOB_KEY) if MyQLMHelper.WAITING_JOB_KEY in hw.meta_data else None
 
-
     @staticmethod
     def retrieve_name(hw: HardwareSpecs) -> str:
         """
@@ -248,7 +248,22 @@ class MyQLMHelper:
         :return: The number of parallel jobs that can currently be launched to the QPU,
            or 1 if the Hardware specs don't contain this information
         """
-        return MyQLMHelper.parse_meta_data(hw, MyQLMHelper.AVAILABLE_JOBS_KEY) if MyQLMHelper.NAME_KEY in hw.meta_data else 1
+        return MyQLMHelper.parse_meta_data(hw, MyQLMHelper.AVAILABLE_JOBS_KEY) if MyQLMHelper.AVAILABLE_JOBS_KEY in hw.meta_data else 1
+
+    @classmethod
+    def retrieve_details(cls, hw: HardwareSpecs) -> dict[str, Any]:
+        """
+        >>> from perceval_interop import MyQLMHelper
+        >>> from qat.qpus import RemoteQPU
+        >>> qpu = RemoteQPU(1212, "middleware.host.address")  # Assuming this is a remote QuandelaQPUHandler
+        >>> hardware_specs = qpu.get_specs()
+        >>> availability = MyQLMHelper.retrieve_availability(hardware_specs)
+
+        :param hw: A HardwareSpecs instance got from requesting the specs from a Quandela QPU
+        :return: The number of parallel jobs that can currently be launched to the QPU,
+           or 1 if the Hardware specs don't contain this information
+        """
+        return MyQLMHelper.parse_meta_data(hw, MyQLMHelper.DETAILS_KEY) if MyQLMHelper.DETAILS_KEY in hw.meta_data else {}
 
     @staticmethod
     def running_status_from_myqlm(job_status: JobStatus) -> RunningStatus:
