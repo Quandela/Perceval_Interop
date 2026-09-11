@@ -19,6 +19,8 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import os
+import signal
 import time
 import traceback
 
@@ -85,12 +87,78 @@ class QuandelaQPUHandler(QPUHandler):
 
     _VALID_STATUS = {"available", "computing", "calibration", "running"}
     _SLEEP_TIME = 1
+    _NO_PREVIOUS_SIGTERM_HANDLER = object()
 
     def __init__(self, remote_processor: RemoteProcessor):
         super().__init__()
         self.processor = remote_processor  # Used to get the specs
         self.handler = remote_processor.get_rpc_handler()  # Used to submit jobs
         self._job = None
+        self._job_cancel_requested = False
+        self._previous_sigterm_handler = self._NO_PREVIOUS_SIGTERM_HANDLER
+
+    @staticmethod
+    def _is_stoppable_server(server_type):
+        return isinstance(server_type, str) and server_type.lower() == "stoppable"
+
+    @staticmethod
+    def _is_threaded_server(server_type):
+        return isinstance(server_type, str) and server_type.lower() == "threaded"
+
+    def _install_sigterm_handler(self):
+        previous_handler = signal.getsignal(signal.SIGTERM)
+        self._previous_sigterm_handler = previous_handler
+        signal.signal(signal.SIGTERM, self._handle_sigterm)
+        return previous_handler
+
+    def _restore_sigterm_handler(self, previous_handler):
+        if previous_handler is self._NO_PREVIOUS_SIGTERM_HANDLER:
+            return
+
+        signal.signal(signal.SIGTERM, previous_handler)
+        self._previous_sigterm_handler = self._NO_PREVIOUS_SIGTERM_HANDLER
+
+    def _call_previous_sigterm_handler(self, signum, frame):
+        previous_handler = self._previous_sigterm_handler
+        if previous_handler is self._NO_PREVIOUS_SIGTERM_HANDLER:
+            return
+
+        if previous_handler is None or previous_handler == signal.SIG_IGN:
+            return
+
+        if previous_handler == signal.SIG_DFL:
+            signal.signal(signum, signal.SIG_DFL)
+            os.kill(os.getpid(), signum)
+            return
+
+        previous_handler(signum, frame)
+
+    def _handle_sigterm(self, signum, frame):
+        job = self._job
+        if job is None:
+            self._call_previous_sigterm_handler(signum, frame)
+            return
+
+        self._job_cancel_requested = True
+        get_logger().info("Received SIGTERM, canceling current job", channel.user)
+        try:
+            job.cancel()
+        except Exception as e:
+            get_logger().error(f"Failed to cancel current job after SIGTERM: {e}", channel.user)
+
+    def serve(self, port, host_ip="localhost", server_type=None, ssl_cert: str = None,
+              ssl_key: str = None, ssl_ca: str = None):
+        if self._is_threaded_server(server_type):
+            raise ValueError('QuandelaQPUHandler does not support server_type="threaded".')
+
+        previous_sigterm_handler = self._NO_PREVIOUS_SIGTERM_HANDLER
+        if self._is_stoppable_server(server_type):
+            previous_sigterm_handler = self._install_sigterm_handler()
+
+        try:
+            return super().serve(port, host_ip, server_type, ssl_cert, ssl_key, ssl_ca)
+        finally:
+            self._restore_sigterm_handler(previous_sigterm_handler)
 
     def _get_specs(self) -> HardwareSpecs:
         hw = HardwareSpecs()
@@ -188,17 +256,34 @@ class QuandelaQPUHandler(QPUHandler):
         if self._job is not None:
             raise RuntimeError("A job is already running")
 
+        self._job_cancel_requested = False
         self._job = RemoteJob(full_payload, self.handler, job_name)
+
+
         try:
+            if self._job_cancel_requested:
+                raise RuntimeError("Job has been canceled.")
+
             self._job.execute_async()
 
+            if self._job_cancel_requested:
+                self._job.cancel()
+                raise RuntimeError("Job has been canceled.")
+
             while not self._job.is_complete:
+                if self._job_cancel_requested:
+                    self._job.cancel()
+                    raise RuntimeError("Job has been canceled.")
+
                 platform_details = self.handler.fetch_platform_details()
                 if platform_details.get("status") not in self._VALID_STATUS:
                     self._job.cancel()
                     raise RuntimeError("Platform was made unavailable during job completion; Job has been canceled")
 
                 time.sleep(self._SLEEP_TIME)
+
+            if self._job_cancel_requested:
+                raise RuntimeError("Job has been canceled.")
 
             pcvl_results = self._job.get_results()
             get_logger().debug("Results obtained from the job")
@@ -207,6 +292,9 @@ class QuandelaQPUHandler(QPUHandler):
             self._job.cancel()
             raise RuntimeError("Job has been canceled.")
         except Exception as e:
+            if self._job_cancel_requested:
+                raise RuntimeError("Job has been canceled.") from e
+
             if self._job.status.failed:
                 get_logger().warn(f'The job failed: {self._job.status.stop_message}', channel.user)
                 pcvl_results = {'error': self._job.status.stop_message}
@@ -216,6 +304,8 @@ class QuandelaQPUHandler(QPUHandler):
                 except Exception as cancel_error:
                     raise cancel_error from e
                 raise e
+        finally:
+            self._job_cancel_requested = False
 
         if job_context is not None:
             pcvl_results["job_context"] = job_context
