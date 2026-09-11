@@ -19,63 +19,23 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-import json
 import os
 import signal
 
 import pytest
-from perceval import RemoteProcessor, Experiment, Matrix, Unitary, BasicState, PayloadGenerator, NoiseModel, \
-    BSDistribution, FockState, ProviderFactory, BSSamples, SimulatedComputer, RemoteComputer, ExecutionFactory
+from perceval import Experiment, Matrix, Unitary, BasicState, PayloadGenerator, ProviderFactory, BSSamples, \
+    SimulatedComputer, RemoteComputer, ExecutionFactory
 from perceval.algorithm import Sampler
-from perceval.providers.quandela.rpc_handler import RPCHandler
 from perceval.serialization import serialize
+from tests._test_utils import assert_bsd_close
 
-from perceval_interop import QuandelaQPUHandler, MyQLMHelper, QuandelaQPUHandlerNEW, MyQLMCommunicationLayer
+from perceval_interop import QuandelaQPUHandler, MyQLMHelper, MyQLMCommunicationLayer
 
 try:
     from qat.core import HardwareSpecs, Job
 except ModuleNotFoundError as e:
     assert e.name == "qat"
     pytest.skip("need `myqlm` module", allow_module_level=True)
-
-
-class _MockRPCHandler(RPCHandler):
-
-    JOB_ID = "123"
-
-    def __init__(self, name):
-        super().__init__(name, "no_url", "no_token")
-        self._results = BSDistribution({FockState([1, 0]): 1})
-
-    def create_job(self, payload) -> str:
-        return _MockRPCHandler.JOB_ID
-
-    def get_job_status(self, id: str) -> dict:
-        return {'status': 'completed'}
-
-    def get_job_results(self, id: str) -> dict:
-        return {'results': json.dumps(serialize({"results": self._results}))}
-
-    def fetch_platform_details(self) -> dict:
-        return {"status": "available", "waiting_jobs": 0}
-
-    @property
-    def results(self):
-        return {"results": self._results, "job_id": _MockRPCHandler.JOB_ID, "job_duration": 0}
-
-
-class _MockRemoteProcessor(RemoteProcessor):
-
-    def __init__(self, name):
-        super().__init__(name, rpc_handler=_MockRPCHandler(name))
-
-    def fetch_data(self):
-        self._specs = {"name": self.name,
-                       "noise": NoiseModel(0.8),  # Includes something not serializable by MyQML
-                       "available_commands": ["probs"]}
-
-    def get_expected_results(self):
-        return self._rpc_handler.results
 
 
 def _test_serialize_deserialize(obj, file_name):
@@ -98,8 +58,8 @@ def _test_serialize_deserialize(obj, file_name):
 
 
 def test_specs():
-    rp = _MockRemoteProcessor("sim:test")
-    handler = QuandelaQPUHandler(rp)
+    comp = SimulatedComputer("SLOS")
+    handler = QuandelaQPUHandler(comp)
 
     specs = handler.get_specs()
     assert isinstance(specs, HardwareSpecs)
@@ -107,10 +67,11 @@ def test_specs():
     _test_serialize_deserialize(specs, "test_specs.hw")
 
     specs = MyQLMHelper.retrieve_specs(specs)
-    assert specs == rp.specs
+    assert specs == comp.specs
 
 
 def test_user_stack():
+    # LEGACY
     # Build your experiment
     exp = Experiment()
     exp.add(0, Unitary(Matrix.random_unitary(8)))
@@ -119,32 +80,39 @@ def test_user_stack():
 
     # First, turn the experiment into a MyQLM serializable Job
     command = "probs"
-    job = MyQLMHelper.make_job(command, exp, max_shots=10_000_000)
+    job = MyQLMHelper.make_job(command, exp)
 
     assert isinstance(job, Job)
 
     full_payload = MyQLMHelper.parse_meta_data(job, MyQLMHelper.PAYLOAD_KEY)
     # Experiments don't define == so we compare the serialized results
-    assert serialize(full_payload, compress=True) == PayloadGenerator.generate_payload(command, exp, max_shots=10_000_000)
+    assert serialize(full_payload, compress=True) == PayloadGenerator.generate_payload(command, exp)
 
     job = _test_serialize_deserialize(job, "test_job.job")
 
     # Assumes the job is now as it will be when given to the remote handler
-    rp = _MockRemoteProcessor("sim:test")
-    handler = QuandelaQPUHandler(rp)
+    comp = SimulatedComputer("SLOS")
+    handler = QuandelaQPUHandler(comp)
 
     results = handler.submit_job(job)
 
     results = _test_serialize_deserialize(results, "test_results.res")
 
     perceval_results = MyQLMHelper.retrieve_results(results)
+    assert "details" in perceval_results
+    assert "job_duration" in perceval_results
 
-    assert perceval_results == rp.get_expected_results()
+    local_results = comp.probs(exp)
+    assert perceval_results["global_perf"] == local_results["global_perf"]
+
+    # Perceval serializes BSDs with a 1e-6 precision
+    assert_bsd_close(perceval_results["results"], local_results["results"], abs=1e-6)
 
 
 def test_session():
-    mock_rp = _MockRemoteProcessor("sim:test")
-    handler = QuandelaQPUHandler(mock_rp)
+    # LEGACY
+    comp = SimulatedComputer("SLOS")
+    handler = QuandelaQPUHandler(comp)
 
     session = ProviderFactory.get_provider("MyQLM", remote_qpu=handler)
 
@@ -171,11 +139,10 @@ def test_sigterm_cancels_running_job():
         def cancel(self):
             self.cancel_called = True
 
-    mock_rp = _MockRemoteProcessor("sim:test")
-    handler = QuandelaQPUHandler(mock_rp)
+    handler = QuandelaQPUHandler(SimulatedComputer("SLOS"))
     running_job = _CancelableJob()
 
-    handler._job = running_job
+    handler._execution = running_job
     handler._handle_sigterm(signal.SIGTERM, None)
 
     assert running_job.cancel_called
@@ -183,8 +150,7 @@ def test_sigterm_cancels_running_job():
 
 
 def test_stoppable_serve_installs_sigterm_handler(monkeypatch):
-    mock_rp = _MockRemoteProcessor("sim:test")
-    handler = QuandelaQPUHandler(mock_rp)
+    handler = QuandelaQPUHandler(SimulatedComputer("SLOS"))
     calls = []
 
     def _install_sigterm_handler():
@@ -212,8 +178,7 @@ def test_stoppable_serve_installs_sigterm_handler(monkeypatch):
 
 
 def test_threaded_serve_is_refused(monkeypatch):
-    mock_rp = _MockRemoteProcessor("sim:test")
-    handler = QuandelaQPUHandler(mock_rp)
+    handler = QuandelaQPUHandler(SimulatedComputer("SLOS"))
 
     def _serve(*args, **kwargs):
         raise AssertionError("Base serve should not be called")
@@ -227,7 +192,7 @@ def test_threaded_serve_is_refused(monkeypatch):
 def test_communication_layer():
     computer = SimulatedComputer("SLOS")
 
-    handler = QuandelaQPUHandlerNEW(computer)
+    handler = QuandelaQPUHandler(computer)
     comm_layer = MyQLMCommunicationLayer(handler)
     remote_computer = RemoteComputer(comm_layer)
 

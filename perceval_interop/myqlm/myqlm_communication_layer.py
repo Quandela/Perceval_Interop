@@ -36,7 +36,7 @@ from qat.qlmaas.result import AsyncResult
 from requests import HTTPError
 
 from .myqlm_helper import MyQLMHelper
-from .qpu_handler_2 import QuandelaQPUHandler
+from .qpu_handler import QuandelaQPUHandler
 
 
 RemoteId: TypeAlias = str | AsyncResult  # uuid if Computer answers Results, for local storage
@@ -233,6 +233,7 @@ Serialization.register_class(RemoteQPU,
                              class_serial_members_read=read_qpu,
                              tag="MyQLM_RemoteQPU")
 
+
 def write_async_result(async_result: AsyncResult, archive: OutputArchive):
     t = ClassRegistry.get_by_class(AsyncResult)
     children = [async_result.get_info().id]
@@ -244,8 +245,10 @@ def write_async_result(async_result: AsyncResult, archive: OutputArchive):
 
 
 def read_async_result(async_result: AsyncResult, archive: InputArchive, members, version: int):
+    from qlmaas.utils import get_job  # If we got an AsyncResult, this exists
     job_id = archive.create(members[0][1])
-    # TODO
+    new_result = get_job(job_id)
+    async_result.__dict__ = new_result.__dict__
 
 
 Serialization.register_class(AsyncResult,

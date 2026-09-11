@@ -273,9 +273,9 @@ class MyQLMHelper:
             JobStatus.DONE: RunningStatus.SUCCESS,
             JobStatus.CANCELLED: RunningStatus.CANCELED,
             JobStatus.UNKNOWN_JOB: RunningStatus.UNKNOWN,
-            JobStatus.IN_BUCKET: RunningStatus.WAITING,  # TODO: clarify the meaning of IN_BUCKET
+            JobStatus.IN_BUCKET: RunningStatus.WAITING,
             JobStatus.DELETED: RunningStatus.CANCELED,
-            JobStatus.STOPPED: RunningStatus.SUSPENDED,  # TODO: can a STOPPED status be resumed? If not, better set CANCELED
+            JobStatus.STOPPED: RunningStatus.SUSPENDED,
             JobStatus.FAILED: RunningStatus.ERROR
         }
 
