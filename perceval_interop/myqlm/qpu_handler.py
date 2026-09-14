@@ -246,6 +246,7 @@ class QuandelaQPUHandler(QPUHandler):
                 self._execution.execute_async()
 
                 while not self._execution.is_complete:
+                    get_logger().info(f"Job progress >>> {self._execution.status.progress}")
                     if self.computer.status not in self._VALID_STATUS:
                         self._execution.cancel()
                         raise RuntimeError("Platform was made unavailable during job completion; Job has been canceled")
