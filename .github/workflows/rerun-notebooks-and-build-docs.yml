@@ -23,7 +23,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
-        version: [3.10, 3.12] # only running with oldest and newest, all-dependency compatible version
+        version: ['3.10', '3.12'] # only running with oldest and newest, all-dependency compatible version
     steps:
     - if: runner.os == 'Linux'
       name: Initialize PYTHON_V_CP linux
@@ -36,10 +36,10 @@ jobs:
       shell: Bash
 
     - uses: actions/checkout@v4
-    - name: Set up Python '${{ matrix.version }}'
+    - name: Set up Python ${{ matrix.version }}
       uses: actions/setup-python@v5
       with:
-        python-version: '${{ matrix.version }}'
+        python-version: ${{ matrix.version }}
 
     - name: Install dependencies
       run: |
