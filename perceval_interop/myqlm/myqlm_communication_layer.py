@@ -167,6 +167,7 @@ class MyQLMCommunicationLayer(CommunicationLayer):
             return job_status
 
         myqlm_info = remote_id.get_info()
+        # TODO: use new myqlm call instead of queue that doesn't guarantee that the job is being executed
         if remote_id.queue() == 0:  # Job is currently being executed
             self.fetch_data()
             progress = self._progress

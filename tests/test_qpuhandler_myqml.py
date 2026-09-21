@@ -27,7 +27,7 @@ from perceval import Experiment, Matrix, Unitary, BasicState, PayloadGenerator, 
     SimulatedComputer, RemoteComputer, ExecutionFactory
 from perceval.algorithm import Sampler
 from perceval.serialization import serialize
-from tests._test_utils import assert_bsd_close
+from ._test_utils import assert_bsd_close
 
 from perceval_interop import QuandelaQPUHandler, MyQLMHelper, MyQLMCommunicationLayer
 
