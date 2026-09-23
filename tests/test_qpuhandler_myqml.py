@@ -66,7 +66,8 @@ class _MockRPCHandler:
                 "waiting_jobs": 0,
                 "specs": {"name": self.name,
                           "noise": NoiseModel(0.8),  # Includes something not serializable by MyQML
-                          "available_commands": ["probs"]}}
+                          "available_commands": ["probs"]},
+                "type": "simulator"}
 
     @property
     def results(self):
