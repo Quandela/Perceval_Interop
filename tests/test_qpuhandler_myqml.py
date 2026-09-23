@@ -24,9 +24,8 @@ import os
 
 import pytest
 from perceval import RemoteProcessor, Experiment, Matrix, Unitary, BasicState, PayloadGenerator, NoiseModel, \
-    BSDistribution, FockState, ProviderFactory, BSSamples
+    BSDistribution, FockState, ProviderFactory, BSSamples, PlatformSpecs
 from perceval.algorithm import Sampler
-from perceval.runtime.rpc_handler import RPCHandler
 from perceval.serialization import serialize
 
 from perceval_interop import QuandelaQPUHandler, MyQLMHelper
@@ -38,12 +37,16 @@ except ModuleNotFoundError as e:
     pytest.skip("need `myqlm` module", allow_module_level=True)
 
 
-class _MockRPCHandler(RPCHandler):
+class _MockRPCHandler:
 
     JOB_ID = "123"
 
     def __init__(self, name):
-        super().__init__(name, "no_url", "no_token")
+        self.name = name
+        self.url = "no_url"
+        self.token = "no_token"
+        self.headers = {"Authorization": f"Bearer {self.token}"}
+        self.proxies = {}
         self._results = BSDistribution({FockState([1, 0]): 1})
 
     def create_job(self, payload) -> str:
@@ -69,9 +72,9 @@ class _MockRemoteProcessor(RemoteProcessor):
         super().__init__(name, rpc_handler=_MockRPCHandler(name))
 
     def fetch_data(self):
-        self._specs = {"name": self.name,
-                       "noise": NoiseModel(0.8),  # Includes something not serializable by MyQML
-                       "available_commands": ["probs"]}
+        self._specs = PlatformSpecs({"name": self.name,
+                                     "noise": NoiseModel(0.8),  # Includes something not serializable by MyQML
+                                     "available_commands": ["probs"]})
 
     def get_expected_results(self):
         return self._rpc_handler.results

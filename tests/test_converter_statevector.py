@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 import pytest
-from perceval.utils import StateVector, Encoding
+from perceval import StateVector, Encoding
 from perceval_interop.qiskit import StatevectorConverter
 
 has_qiskit = True

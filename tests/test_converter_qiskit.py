@@ -32,10 +32,34 @@ except ModuleNotFoundError as e:
 from perceval_interop.qiskit import QiskitConverter
 from perceval_interop.utils import label_cnots_in_gate_sequence
 
-from perceval import BasicState, StateVector, Circuit
-import perceval.components.unitary_components as comp
-from perceval.components.port import get_basic_state_from_encoding
-from perceval.utils import BSDistribution, Encoding, generate_all_logical_states
+from perceval import BasicState, StateVector, Circuit, BSDistribution, Encoding, generate_all_logical_states, LogicalState
+import perceval as pcvl
+
+def _to_fock(encoding: Encoding, qubit_state: list[int]) -> list[int]:
+    if encoding == Encoding.RAW:
+        return [int(qubit_state[0])]
+    elif encoding == Encoding.DUAL_RAIL:
+        return [0, 1] if qubit_state[0] else [1, 0]
+    elif encoding.name.startswith("QUDIT"):
+        fock = [0]*encoding.fock_length
+        photon_pos = sum(val*(2**idx) for idx, val in enumerate(reversed(qubit_state)))
+        fock[photon_pos] = 1
+        return fock
+    else:
+        raise NotImplementedError
+
+def get_basic_state_from_encoding(encoding: list[Encoding | int], logical: LogicalState) -> BasicState:
+    fock = []
+    i = 0
+    for e in encoding:
+        if isinstance(e, int):
+            fock.append(e)
+        elif isinstance(e, Encoding):
+            lsz = e.logical_length
+            ls = logical[i:i+lsz]
+            i += lsz
+            fock += _to_fock(e, ls)
+    return BasicState(fock)
 
 
 EXPECTED_QISK_SIM_PROBS_DATA = {
@@ -70,8 +94,8 @@ def test_basic_circuit_h():
     assert len(c._components) == 1
     assert isinstance(c._components[0][1], Circuit) and len(c._components[0][1]._components) == 1
     c0 = c._components[0][1]._components[0][1]
-    assert isinstance(c0, comp.BS)
-    assert c0._convention == comp.BSConvention.H
+    assert isinstance(c0, pcvl.BS)
+    assert c0._convention == pcvl.BSConvention.H
 
 
 def test_basic_circuit_double_h():
@@ -95,7 +119,7 @@ def test_basic_circuit_s():
     r0 = pc.components[0][1]._components[0][0]
     c0 = pc.components[0][1]._components[0][1]
     assert r0 == (1,)
-    assert isinstance(c0, comp.PS)
+    assert isinstance(c0, pcvl.PS)
 
 
 def test_basic_circuit_swap_direct():
@@ -107,7 +131,7 @@ def test_basic_circuit_swap_direct():
     assert len(pc.components) == 1
     r0, c0 = pc.components[0]
     assert r0 == (0, 1, 2, 3)
-    assert isinstance(c0, comp.PERM)
+    assert isinstance(c0, pcvl.PERM)
     assert c0.perm_vector == [2, 3, 0, 1]
 
 
@@ -120,7 +144,7 @@ def test_basic_circuit_swap_indirect():
     assert len(pc.components) == 1
     r0, c0 = pc.components[0]
     assert r0 == (0, 1, 2, 3)
-    assert isinstance(c0, comp.PERM)
+    assert isinstance(c0, pcvl.PERM)
     assert c0.perm_vector == [2, 3, 0, 1]
 
 
@@ -132,7 +156,7 @@ def test_basic_circuit_swap_with_gap():
     assert len(pc.components) == 1
     r0, c0 = pc.components[0]
     assert r0 == (2, 3, 4, 5, 6, 7)
-    assert isinstance(c0, comp.PERM)
+    assert isinstance(c0, pcvl.PERM)
     assert c0.perm_vector == [4, 5, 2, 3, 0, 1]
 
 
@@ -160,9 +184,9 @@ def test_cnot_1_inverse_heralded():
     assert len(pc.components) == 4
     # should be BS//PERM//CNOT//PERM
     perm1 = pc.components[1][1]
-    assert isinstance(perm1, comp.PERM)
+    assert isinstance(perm1, pcvl.PERM)
     perm2 = pc.components[3][1]
-    assert isinstance(perm2, comp.PERM)
+    assert isinstance(perm2, pcvl.PERM)
     # check that ports are correctly connected
     assert perm1.perm_vector == [2, 3, 0, 1]
     assert perm2.perm_vector == [2, 3, 0, 1]
@@ -180,9 +204,9 @@ def test_cnot_2_heralded():
     assert len(pc.components) == 4
     # should be BS//PERM//CNOT//PERM
     perm1 = pc.components[1][1]
-    assert isinstance(perm1, comp.PERM)
+    assert isinstance(perm1, pcvl.PERM)
     perm2 = pc.components[3][1]
-    assert isinstance(perm2, comp.PERM)
+    assert isinstance(perm2, pcvl.PERM)
     # check that ports are correctly connected
     assert perm1.perm_vector == [4, 5, 0, 1, 2, 3]
     assert perm2.perm_vector == [2, 3, 4, 5, 0, 1]
@@ -211,7 +235,7 @@ def test_cnot_postprocess():
 
     qc.h(0)  # We should be able to continue the circuit with 1-qubit gates even with a post-selected CNOT
     pc = convertor.convert(qc, use_postselection=True)
-    assert isinstance(pc.components[-1][1]._components[0][1], comp.BS)
+    assert isinstance(pc.components[-1][1]._components[0][1], pcvl.BS)
 
 
 def test_cnot_herald():
@@ -319,7 +343,7 @@ def test_basic_circuit_sdg():
     assert sd[StateVector('|1,0>')] == 1
     assert len(c._components) == 1
     assert isinstance(c._components[0][1], Circuit) and len(c._components[0][1]._components) == 1
-    assert isinstance(c._components[0][1]._components[0][1], comp.PS)
+    assert isinstance(c._components[0][1]._components[0][1], pcvl.PS)
 
 
 def test_basic_circuit_tdg():
@@ -333,7 +357,7 @@ def test_basic_circuit_tdg():
     assert sd[StateVector('|1,0>')] == 1
     assert len(c._components) == 1
     assert isinstance(c._components[0][1], Circuit) and len(c._components[0][1]._components) == 1
-    assert isinstance(c._components[0][1]._components[0][1], comp.PS)
+    assert isinstance(c._components[0][1]._components[0][1], pcvl.PS)
 
 
 def test_circuit_measure():
@@ -361,4 +385,4 @@ def test_random_qiskit_circuit():
     assert sd[StateVector('|1,0>')] == 1
     assert len(c._components) == 1
     assert isinstance(c._components[0][1], Circuit) and len(c._components[0][1]._components) == 1
-    assert isinstance(c._components[0][1]._components[0][1], comp.BS)
+    assert isinstance(c._components[0][1]._components[0][1], pcvl.BS)
