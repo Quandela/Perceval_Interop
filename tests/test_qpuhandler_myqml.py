@@ -24,7 +24,7 @@ import os
 
 import pytest
 from perceval import RemoteProcessor, Experiment, Matrix, Unitary, BasicState, PayloadGenerator, NoiseModel, \
-    BSDistribution, FockState, ProviderFactory, BSSamples, PlatformSpecs
+    BSDistribution, FockState, ProviderFactory, BSSamples
 from perceval.algorithm import Sampler
 from perceval.serialization import serialize
 
@@ -41,13 +41,16 @@ class _MockRPCHandler:
 
     JOB_ID = "123"
 
-    def __init__(self, name):
-        self.name = name
+    def __init__(self):
+        self.name = "sim:test"
         self.url = "no_url"
         self.token = "no_token"
         self.headers = {"Authorization": f"Bearer {self.token}"}
         self.proxies = {}
         self._results = BSDistribution({FockState([1, 0]): 1})
+
+    def get_expected_results(self):
+        return self.results
 
     def create_job(self, payload) -> str:
         return _MockRPCHandler.JOB_ID
@@ -59,25 +62,15 @@ class _MockRPCHandler:
         return {'results': json.dumps(serialize({"results": self._results}))}
 
     def fetch_platform_details(self) -> dict:
-        return {"status": "available", "waiting_jobs": 0}
+        return {"status": "available",
+                "waiting_jobs": 0,
+                "specs": {"name": self.name,
+                          "noise": NoiseModel(0.8),  # Includes something not serializable by MyQML
+                          "available_commands": ["probs"]}}
 
     @property
     def results(self):
         return {"results": self._results, "job_id": _MockRPCHandler.JOB_ID, "job_duration": 0}
-
-
-class _MockRemoteProcessor(RemoteProcessor):
-
-    def __init__(self, name):
-        super().__init__(name, rpc_handler=_MockRPCHandler(name))
-
-    def fetch_data(self):
-        self._specs = PlatformSpecs({"name": self.name,
-                                     "noise": NoiseModel(0.8),  # Includes something not serializable by MyQML
-                                     "available_commands": ["probs"]})
-
-    def get_expected_results(self):
-        return self._rpc_handler.results
 
 
 def _test_serialize_deserialize(obj, file_name):
@@ -100,7 +93,7 @@ def _test_serialize_deserialize(obj, file_name):
 
 
 def test_specs():
-    rp = _MockRemoteProcessor("sim:test")
+    rp = RemoteProcessor(rpc_handler=_MockRPCHandler())
     handler = QuandelaQPUHandler(rp)
 
     specs = handler.get_specs()
@@ -132,7 +125,8 @@ def test_user_stack():
     job = _test_serialize_deserialize(job, "test_job.job")
 
     # Assumes the job is now as it will be when given to the remote handler
-    rp = _MockRemoteProcessor("sim:test")
+    rpc = _MockRPCHandler()
+    rp = RemoteProcessor(rpc_handler=rpc)
     handler = QuandelaQPUHandler(rp)
 
     results = handler.submit_job(job)
@@ -141,11 +135,11 @@ def test_user_stack():
 
     perceval_results = MyQLMHelper.retrieve_results(results)
 
-    assert perceval_results == rp.get_expected_results()
+    assert perceval_results == rpc.get_expected_results()
 
 
 def test_session():
-    mock_rp = _MockRemoteProcessor("sim:test")
+    mock_rp = RemoteProcessor(rpc_handler=_MockRPCHandler())
     handler = QuandelaQPUHandler(mock_rp)
 
     session = ProviderFactory.get_provider("MyQLM", remote_qpu=handler)

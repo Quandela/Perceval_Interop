@@ -48,7 +48,7 @@ def _to_fock(encoding: Encoding, qubit_state: list[int]) -> list[int]:
     else:
         raise NotImplementedError
 
-def get_basic_state_from_encoding(encoding: list[Encoding | int], logical: LogicalState) -> BasicState:
+def get_basic_state_from_encoding(encoding: list[Encoding], logical: LogicalState) -> BasicState:
     fock = []
     i = 0
     for e in encoding:
