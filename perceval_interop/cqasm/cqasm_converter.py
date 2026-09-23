@@ -20,9 +20,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from perceval.components import Processor, catalog
+from perceval import Processor, catalog, NoiseModel
 from perceval.utils.logging import get_logger, channel
-from perceval.utils import NoiseModel
+
 from perceval_interop.abstract_converter import AGateConverter
 from perceval_interop.utils import ConversionSyntaxError, ConversionUnsupportedFeatureError, ConversionBadVersionError
 

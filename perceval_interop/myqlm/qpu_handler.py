@@ -27,12 +27,13 @@ from qat.core import HardwareSpecs, Job as MyQLMJob, Result as MyQLMResult
 from qat.core.qpu import QPUHandler
 
 from perceval import RemoteJob, RemoteProcessor, PayloadGenerator, ProcessorType
-from perceval.runtime.remote_processor import PERFS_KEY
 from perceval.utils.logging import channel, get_logger
 from requests import HTTPError
 
 from .myqlm_converter import MyQLMConverter
 from .myqlm_helper import MyQLMHelper
+
+PERFS_KEY = "perfs"
 
 
 class QuandelaQPUHandler(QPUHandler):

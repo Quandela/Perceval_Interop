@@ -21,9 +21,7 @@
 # SOFTWARE.
 
 import numpy as np
-from perceval.utils import StateVector
-from perceval.utils import BasicState
-from perceval.utils import Encoding
+from perceval import StateVector, BasicState, Encoding
 
 from ..utils import MissingDependencyError
 

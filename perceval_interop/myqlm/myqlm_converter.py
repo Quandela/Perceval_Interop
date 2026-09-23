@@ -21,9 +21,9 @@
 # SOFTWARE.
 
 from perceval_interop.abstract_converter import AGateConverter
-from perceval.components import catalog
+
+from perceval import catalog, NoiseModel
 from perceval.utils.logging import get_logger, channel
-from perceval.utils import NoiseModel
 
 
 class MyQLMConverter(AGateConverter):
