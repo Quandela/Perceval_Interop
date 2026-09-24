@@ -39,7 +39,16 @@ from .myqlm_helper import MyQLMHelper
 from .qpu_handler import QuandelaQPUHandler
 
 
-RemoteId: TypeAlias = str | AsyncResult  # uuid if Computer answers Results, for local storage
+class _LocalId:
+
+    def __init__(self, results: dict[str, Any]):
+        self.results = results
+
+    def cancel(self):
+        raise RuntimeError(f"Job is already complete")
+
+
+RemoteId: TypeAlias = _LocalId | AsyncResult
 
 
 class MyQLMCommunicationLayer(CommunicationLayer):
@@ -55,8 +64,6 @@ class MyQLMCommunicationLayer(CommunicationLayer):
         self._available_jobs = 1
         self._job_in_queue: int | None = None
         self._platform_details: dict[str, Any] = {}
-
-        self._results_cache = {}  # TODO: store this in a file instead of instance?
 
         self.fetch_data()
 
@@ -113,13 +120,11 @@ class MyQLMCommunicationLayer(CommunicationLayer):
         if isinstance(intermediate_repr, AsyncResult):
             return intermediate_repr
 
-        job_id = str(uuid.uuid4())
-        self._results_cache[job_id] = MyQLMHelper.retrieve_results(intermediate_repr)
-        return job_id
+        return _LocalId(MyQLMHelper.retrieve_results(intermediate_repr))
 
     def get_results(self, remote_id: RemoteId) -> dict:
-        if isinstance(remote_id, str):
-            results = self._results_cache.pop(remote_id)
+        if isinstance(remote_id, _LocalId):
+            results = remote_id.results
         else:
             results = MyQLMHelper.retrieve_results(remote_id)
 
@@ -143,10 +148,10 @@ class MyQLMCommunicationLayer(CommunicationLayer):
         return results
 
     def get_job_status(self, remote_id: RemoteId, refresh_errors: int = 0) -> ExecutionStatus | None:
-        if isinstance(remote_id, str):
+        if isinstance(remote_id, _LocalId):
             # The job is done. We have to know whether it ended successfully or with an error
             job_status = ExecutionStatus()
-            results = self._results_cache[remote_id]
+            results = remote_id.results
             sub_results = results[KEY_RESULTS]
             if isinstance(sub_results, str):
                 if "details" in results:
@@ -201,8 +206,6 @@ class MyQLMCommunicationLayer(CommunicationLayer):
         return self._status
 
     def cancel(self, remote_id: RemoteId) -> None:
-        if isinstance(remote_id, str):
-            raise RuntimeError(f"Job is already complete")
         remote_id.cancel(remote_id)
 
     def get_availability(self) -> int:
@@ -258,13 +261,17 @@ Serialization.register_class(AsyncResult,
                              tag="MyQLM_AsyncResult")
 
 
+Serialization.register_class(_LocalId,
+                             members=["results"],
+                             tag="_MyQLM_LocalId")
+
+
 def read_comm_layer(comm_layer: MyQLMCommunicationLayer, archive: InputArchive, members, version: int):
     objects = {members[i][0]: archive.create(members[i][1]) for i in range(len(members))}
     comm_layer.__init__(objects["_qpu"])  # Automatically calls fetch_data() - no need to store its results
-    comm_layer._results_cache = objects["_results_cache"]
 
 
 Serialization.register_class(MyQLMCommunicationLayer,
                              class_serial_members_write=lambda communication_layer, archive:
-                                archive.save_attr(communication_layer, ["_qpu", "_results_cache"]),
+                                archive.save_attr(communication_layer, ["_qpu"]),
                              class_serial_members_read=read_comm_layer)
