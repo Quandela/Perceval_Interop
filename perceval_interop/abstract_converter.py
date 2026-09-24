@@ -24,11 +24,11 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from perceval.components import Port, Circuit, Processor, catalog, AProcessor
-from perceval.utils import P, BasicState, Encoding, global_params, PostSelect, NoiseModel
+from perceval import Port, Circuit, Processor, catalog, AProcessor, BasicState, Encoding, global_params, PostSelect, NoiseModel
 from perceval.utils.algorithms.optimize import optimize
 from perceval.utils.algorithms.norm import frobenius
-import perceval.components.unitary_components as comp
+import perceval as pcvl
+
 from perceval_interop.utils.converter_utils import label_cnots_in_gate_sequence
 
 def _create_mode_map(c_idx: int, c_data: int) -> dict:
@@ -56,9 +56,9 @@ class AGateConverter(ABC):
         self.create_hcz_processor = catalog["heralded cz"].build_processor
         self.create_ppcnot_processor = catalog["postprocessed cnot"].build_processor
         self.create_generic_2mode_circuit = catalog["generic 2 mode circuit"].build_circuit
-        self.create_lower_phase_circuit = lambda: Circuit(2) // (0, comp.PS(P("phi2")))
-        self.create_upper_phase_circuit = lambda: Circuit(2) // (1, comp.PS(P("phi1")))
-        self.create_2phase_circuit = lambda: Circuit(2) // (0, comp.PS(P("phi1"))) // (1, comp.PS(P("phi2")))
+        self.create_lower_phase_circuit = lambda: Circuit(2) // (0, pcvl.PS(pcvl.P("phi2")))
+        self.create_upper_phase_circuit = lambda: Circuit(2) // (1, pcvl.PS(pcvl.P("phi1")))
+        self.create_2phase_circuit = lambda: Circuit(2) // (0, pcvl.PS(pcvl.P("phi1"))) // (1, pcvl.PS(pcvl.P("phi2")))
 
     @abstractmethod
     def count_qubits(self, gate_circuit) -> int:
@@ -212,7 +212,7 @@ class AGateConverter(ABC):
             perm[1] = perm[0] + 1
             perm[perm[0]] = 0
             perm[perm[1]] = 1
-            self._converted_processor.add(c_first, comp.PERM(perm))
+            self._converted_processor.add(c_first, pcvl.PERM(perm))
         else:
             raise UnknownGateError(f"Gate not yet supported: {gate_name}")
 

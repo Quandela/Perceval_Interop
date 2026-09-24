@@ -34,8 +34,7 @@ import numpy as np
 from pathlib import Path
 from perceval_interop import (CQASMConverter, ConversionSyntaxError, ConversionUnsupportedFeatureError,
                               ConversionBadVersionError)
-from perceval.components import BS
-from perceval.utils import BasicState, StateVector
+from perceval import BS, BasicState, StateVector
 
 
 def test_converter_version_check():

@@ -21,8 +21,7 @@
 # SOFTWARE.
 
 from perceval_interop.abstract_converter import AGateConverter
-from perceval.components import catalog
-from perceval.utils import NoiseModel
+from perceval import catalog, NoiseModel
 
 import qiskit
 

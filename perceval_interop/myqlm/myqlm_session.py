@@ -29,8 +29,8 @@ from qat.core.qpu import RemoteQPU
 from qat.qlmaas.result import AsyncResult
 
 from perceval import ISession, RemoteProcessor
-from perceval.runtime.legacy.remote_processor import PERFS_KEY
 from perceval.utils.logging import channel, get_logger
+from perceval.utils.constants import PERFS_KEY
 
 from .myqlm_helper import MyQLMHelper
 from .qpu_handler import QuandelaQPUHandler

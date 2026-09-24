@@ -164,7 +164,7 @@ class MyQLMCommunicationLayer(CommunicationLayer):
                 else:
                     job_status.stop_run(RunningStatus.SUCCESS)
 
-            if "job_duration" in results:
+            if "job_duration" in results and results["job_duration"] is not None:
                 # Inserting 0 allows the RemoteGetter not to update the init time.
                 # This will unfortunately make the completed time wrong
                 job_status.update_times(0, 0, results["job_duration"])

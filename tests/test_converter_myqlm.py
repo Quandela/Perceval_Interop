@@ -33,7 +33,7 @@ except ModuleNotFoundError as e:
 
 from perceval_interop.myqlm import MyQLMConverter
 from perceval import StateVector
-import perceval.components.unitary_components as comp
+import perceval as pcvl
 from perceval.algorithm import Sampler
 
 
@@ -49,7 +49,7 @@ def test_basic_circuit_h():
     assert c.m == 2 * len(qbits)
 
     c0 = c._components[0][1]._components[0][1]
-    assert isinstance(c0, comp.BS)
+    assert isinstance(c0, pcvl.BS)
 
     sd = pc.source_distribution
     assert len(sd) == 1
@@ -126,7 +126,7 @@ def test_basic_circuit_swap():
     assert len(pc.components) == 1
     r0, c0 = pc.components[0]
     assert r0 == (0, 1, 2, 3)
-    assert isinstance(c0, comp.PERM)
+    assert isinstance(c0, pcvl.PERM)
     assert c0.perm_vector == [2, 3, 0, 1]
 
 
@@ -260,10 +260,10 @@ def test_circuit_parametrized_gates():
     pc = converter.convert(circuit, use_postselection=True)
 
     assert len(pc.components) == 4
-    assert isinstance(pc.components[0][1]._components[0][1], comp.PS)
-    assert isinstance(pc.components[1][1]._components[0][1], comp.BS)
+    assert isinstance(pc.components[0][1]._components[0][1], pcvl.PS)
+    assert isinstance(pc.components[1][1]._components[0][1], pcvl.BS)
 
-    assert isinstance(pc.components[2][1]._components[0][1], comp.PS)
-    assert isinstance(pc.components[2][1]._components[0][1], comp.PS)
+    assert isinstance(pc.components[2][1]._components[0][1], pcvl.PS)
+    assert isinstance(pc.components[2][1]._components[0][1], pcvl.PS)
 
-    assert isinstance(pc.components[3][1]._components[0][1], comp.BS)
+    assert isinstance(pc.components[3][1]._components[0][1], pcvl.BS)
