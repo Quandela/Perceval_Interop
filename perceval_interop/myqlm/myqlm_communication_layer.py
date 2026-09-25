@@ -76,7 +76,7 @@ class MyQLMCommunicationLayer(CommunicationLayer):
         try:
             all_specs = self._qpu.get_specs()
         except Exception as e:
-            if not len(self._specs):  # throw only the first time
+            if not len(self._specs):
                 raise HTTPError(f"Error while fetching platform details: {e}") from None
             else:
                 get_logger().warn(f"Error while fetching platform details: {e}")
@@ -101,7 +101,7 @@ class MyQLMCommunicationLayer(CommunicationLayer):
     def _serialize(obj):
         archive = OutputArchive()
         Serialization.serialize(obj, archive)
-        return archive.to_text(compress=True)  # Use other format ? Compress ?
+        return archive.to_text(compress=True)
 
     def send(self, payload: dict) -> RemoteId:
         if "commands" not in self._specs:  # We have a worker that knows only payloads up to version 1
@@ -109,9 +109,9 @@ class MyQLMCommunicationLayer(CommunicationLayer):
             # we only needs the argument to have "available_commands" when downgrading to version 1
             # This might not be true anymore if we introduce a version 3 someday
             payload = PayloadUpdater.update_payload(payload, self._specs, target_payload_version=1)
-
-        # We serialize the payload here, using the new serialization system - Needed to serialize Computation
-        payload = self._serialize(payload)
+        else:
+            # We serialize the payload here, using the new serialization system - Needed to serialize Computation
+            payload = self._serialize(payload)
 
         cloud_data = {"payload": payload}  # inserting the payload into a dict is only useful for backward compatibility
         job = MyQLMHelper.make_job_from_payload(cloud_data)
