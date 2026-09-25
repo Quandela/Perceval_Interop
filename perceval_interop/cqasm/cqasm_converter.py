@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from perceval import Processor, catalog, NoiseModel
+from perceval import Experiment, catalog
 from perceval.utils.logging import get_logger, channel
 
 from perceval_interop.abstract_converter import AGateConverter
@@ -49,8 +49,8 @@ class CQASMConverter(AGateConverter):
 
     :param backend_name: backend name used in the converted processor (default SLOS)
     """
-    def __init__(self, backend_name: str = "SLOS", noise_model: NoiseModel = None):
-        super().__init__(backend_name, noise_model)
+    def __init__(self):
+        super().__init__()
         self._qubit_list = []
 
     def count_qubits(self, ast) -> int:
@@ -142,15 +142,15 @@ class CQASMConverter(AGateConverter):
     def _get_qubit_names(self, ast, n_qbits):
         return [f'{q}[{i}]' if i >= 0 else q for (q, i) in self._qubit_list]
 
-    def convert(self, ast, use_postselection: bool = True) -> Processor:
-        r"""Convert a cQASM quantum program into a `Processor`.
+    def convert(self, ast, use_postselection: bool = True) -> Experiment:
+        r"""Convert a cQASM quantum program into an `Experiment`.
 
         :param ast: the AST of a cQASM program
         :type ast: a Program object, as returned by the cQASM parser
         :param use_postselection: when True, uses as many `postprocessed CNOT` as possible.
                                   Otherwise, uses only `heralded CNOT`
 
-        :return: the converted processor
+        :return: the converted experiment
         """
         if isinstance(ast, str):
             ast = self._convert_from_string(ast)
@@ -178,7 +178,7 @@ class CQASMConverter(AGateConverter):
             raise ConversionSyntaxError(f"Missing version number")
 
     def _convert_from_string(self, source: str) -> cqasm.semantic.Program:
-        r"""Convert a cQASM quantum program into a `Processor`.
+        r"""Convert a cQASM quantum program str into a `Program`.
 
         :param source: a string containing the cQASM program to convert, or the path to a file storing itm
         :return: the cQASM program

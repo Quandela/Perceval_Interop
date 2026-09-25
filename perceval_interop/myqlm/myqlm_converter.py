@@ -27,12 +27,9 @@ from perceval.utils.logging import get_logger, channel
 
 
 class MyQLMConverter(AGateConverter):
-    r"""myQLM quantum circuit to perceval circuit converter.
-
-    :param backend_name: Backend to use in computation, defaults to SLOS
-    """
-    def __init__(self, backend_name: str = "SLOS", noise_model: NoiseModel = None):
-        super().__init__(backend_name, noise_model)
+    """myQLM quantum circuit to perceval circuit converter."""
+    def __init__(self):
+        super().__init__()
         from qat.core.circuit_builder.matrix_util import circ_to_np
         self._circ_to_np = circ_to_np
 
@@ -50,7 +47,7 @@ class MyQLMConverter(AGateConverter):
 
     def _get_gate_sequence(self, myqlm_circ) -> list:
         # returns a nested list of gate names with corresponding qubit positions from a myqlm circuit
-        get_logger().info(f"Convert myQLM circuit ({myqlm_circ.nbqbits} qubits, {len(myqlm_circ.ops)} operations) to processor",
+        get_logger().info(f"Convert myQLM circuit ({myqlm_circ.nbqbits} qubits, {len(myqlm_circ.ops)} operations) to experiment",
                           channel.general)
 
         invalid_gates = [instruction for instruction in myqlm_circ.iterate_simple() if instruction[0] not in myqlm_circ.gate_set]

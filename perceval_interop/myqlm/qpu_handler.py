@@ -218,7 +218,7 @@ class QuandelaQPUHandler(QPUHandler):
 
         if job.circuit is not None and job.nbshots:
             converter = MyQLMConverter()
-            e = converter.convert(job.circuit, use_postselection=True).experiment  # TODO: directly convert to an Experiment
+            e = converter.convert(job.circuit, use_postselection=True)
             comp = Computation(self.computer.get_command("sample_count"), e)
             comp.add_params(max_shots = job.nbshots, max_samples = job.nbshots)
             payload = PayloadGenerator.from_computation(comp)

@@ -32,9 +32,8 @@ except ModuleNotFoundError as e:
     pytest.skip("need `myqlm` module", allow_module_level=True)
 
 from perceval_interop.myqlm import MyQLMConverter
-from perceval import StateVector
+from perceval import FockState, SimulatedComputer
 import perceval as pcvl
-from perceval.algorithm import Sampler
 
 
 def test_basic_circuit_h():
@@ -45,15 +44,13 @@ def test_basic_circuit_h():
     myqlmc = qprog.to_circ()  # Export this program into a quantum circuit
 
     pc = convertor.convert(myqlmc)
-    c = pc.linear_circuit()
+    c = pc.unitary_circuit()
     assert c.m == 2 * len(qbits)
 
     c0 = c._components[0][1]._components[0][1]
     assert isinstance(c0, pcvl.BS)
 
-    sd = pc.source_distribution
-    assert len(sd) == 1
-    assert sd[StateVector('|1,0>')] == 1
+    assert pc.input_state == FockState('|1,0>')
 
 
 def test_cnot_1_heralded():
@@ -66,7 +63,7 @@ def test_cnot_1_heralded():
     pc = convertor.convert(myqlmc, use_postselection=False)
     assert pc.circuit_size == 6
     assert pc.m == 4
-    assert pc.source_distribution[StateVector('|1,0,1,0,1,1>')] == 1
+    assert pc.input_state == FockState('|1,0,1,0,1,1>')
 
 
 def test_cnot_H():
@@ -80,7 +77,7 @@ def test_cnot_H():
     pc = convertor.convert(myqlmc, use_postselection=False)
     assert pc.circuit_size == 6
     assert pc.m == 4
-    assert pc.source_distribution[StateVector('|1,0,1,0,1,1>')] == 1
+    assert pc.input_state == FockState('|1,0,1,0,1,1>')
 
 
 def test_cnot_1_postprocessed():
@@ -93,10 +90,11 @@ def test_cnot_1_postprocessed():
 
     pc = convertor.convert(myqlmc, use_postselection=True)
     assert pc.circuit_size == 6
-    assert pc.source_distribution[StateVector('|1,0,1,0,0,0>')] == 1
+    assert pc.input_state == FockState('|1,0,1,0,0,0>')
     assert len(pc.components) == 2  # No permutation needed, only H and CNOT components exist in the Processor
     # should be BS//CNOT
-    bsd_out = pc.probs()['results']
+    computer = SimulatedComputer("SLOS")
+    bsd_out = computer.probs(pc)['results']
     assert len(bsd_out) == 2
 
 
@@ -110,7 +108,8 @@ def test_cz_heralded():
     pc = convertor.convert(myqlmc)
     assert pc.circuit_size == 6  # 2 heralded modes for CZ
     assert pc.m == 4
-    bsd_out = pc.probs()['results']
+    computer = SimulatedComputer("SLOS")
+    bsd_out = computer.probs(pc)['results']
     assert len(bsd_out) == 1
 
 
@@ -122,7 +121,7 @@ def test_basic_circuit_swap():
     myqlmc = qprog.to_circ()
 
     pc = convertor.convert(myqlmc)
-    assert pc.source_distribution[StateVector('|1,0,1,0>')] == 1
+    assert pc.input_state == FockState('|1,0,1,0>')
     assert len(pc.components) == 1
     r0, c0 = pc.components[0]
     assert r0 == (0, 1, 2, 3)
@@ -148,7 +147,7 @@ def test_compare_u_1qbit(Gate_Name):
     myqlm_gate_u = circ_to_np(gate_matrix)
 
     pcvl_proc = myqlm_converter.convert(circ, use_postselection=False)
-    c = pcvl_proc.linear_circuit()
+    c = pcvl_proc.unitary_circuit()
     cm = c.compute_unitary()
     diff = np.absolute(np.array(cm) - myqlm_gate_u)
 
@@ -179,7 +178,7 @@ def test_abstract_1qbit_gate():
     myqlm_gate_u = circ_to_np(gate_matrix)
 
     pcvl_proc = myqlm_converter.convert(circ, use_postselection=False)
-    c = pcvl_proc.linear_circuit()
+    c = pcvl_proc.unitary_circuit()
     cm = c.compute_unitary()
     diff = np.absolute(np.array(cm) - myqlm_gate_u)
 
@@ -189,7 +188,7 @@ def test_abstract_1qbit_gate():
 
 def test_converter_ghz_state():
     # output distribution being displayed to verify computation from converted circuit in perceval
-    convertor = MyQLMConverter(backend_name="Naive")
+    convertor = MyQLMConverter()
     qprog = Program()
     qbits = qprog.qalloc(3)
     qprog.apply(H, qbits[0])
@@ -200,10 +199,10 @@ def test_converter_ghz_state():
     pc = convertor.convert(myqlmc, use_postselection=True)
     assert pc.m == 6
     assert pc.circuit_size == 10  # m + heralded modes = m + nb_cnot*2
-    import perceval as pcvl
     pc.with_input(pcvl.LogicalState([0, 0, 0]))
-    sampler = Sampler(pc)
-    output_distribution = sampler.probs()["results"]
+
+    computer = SimulatedComputer("SLOS")
+    output_distribution = computer.probs(pc)["results"]
     # GHZ state distribution is expected ( # precision is a bit off because of heralded CNOT implementation)
     logical000 = pcvl.BasicState('|1,0,1,0,1,0>')
     logical111 = pcvl.BasicState('|0,1,0,1,0,1>')
@@ -213,7 +212,7 @@ def test_converter_ghz_state():
 
 @pytest.mark.skip(reason="Only for Dev, takes long for computation and displays truth table")
 def test_converter_noon_state():
-    convertor = MyQLMConverter(backend_name="SLOS")
+    convertor = MyQLMConverter()
     qprog = Program()
     qbits = qprog.qalloc(4)
     qprog.apply(H, qbits[0])
@@ -227,9 +226,9 @@ def test_converter_noon_state():
     pcvl.pdisplay(pc)
     pc.with_input(pcvl.LogicalState([0, 0, 0, 0]))
 
-    sampler = Sampler(pc)
+    computer = SimulatedComputer("SLOS")
     assert pc.m == 2 * len(qbits)
-    output_distribution = sampler.probs()["results"]
+    output_distribution = computer.probs(pc)["results"]
     pcvl.pdisplay(output_distribution, precision=1e-2, max_v=4)
 
 

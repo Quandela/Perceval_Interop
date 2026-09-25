@@ -32,7 +32,8 @@ except ModuleNotFoundError as e:
 from perceval_interop.qiskit import QiskitConverter
 from perceval_interop.utils import label_cnots_in_gate_sequence
 
-from perceval import BasicState, StateVector, Circuit, BSDistribution, Encoding, generate_all_logical_states, LogicalState
+from perceval import FockState, Circuit, BSDistribution, Encoding, generate_all_logical_states, LogicalState, \
+    SimulatedComputer
 import perceval as pcvl
 
 def _to_fock(encoding: Encoding, qubit_state: list[int]) -> list[int]:
@@ -48,7 +49,7 @@ def _to_fock(encoding: Encoding, qubit_state: list[int]) -> list[int]:
     else:
         raise NotImplementedError
 
-def get_basic_state_from_encoding(encoding: list[Encoding], logical: LogicalState) -> BasicState:
+def get_basic_state_from_encoding(encoding: list[Encoding], logical: LogicalState) -> FockState:
     fock = []
     i = 0
     for e in encoding:
@@ -59,7 +60,7 @@ def get_basic_state_from_encoding(encoding: list[Encoding], logical: LogicalStat
             ls = logical[i:i+lsz]
             i += lsz
             fock += _to_fock(e, ls)
-    return BasicState(fock)
+    return FockState(fock)
 
 
 EXPECTED_QISK_SIM_PROBS_DATA = {
@@ -87,10 +88,8 @@ def test_basic_circuit_h():
     qc = qiskit.QuantumCircuit(1)
     qc.h(0)
     pc = convertor.convert(qc)
-    c = pc.linear_circuit()
-    sd = pc.source_distribution
-    assert len(sd) == 1
-    assert sd[StateVector('|1,0>')] == 1
+    c = pc.unitary_circuit()
+    assert pc.input_state == FockState('|1,0>')
     assert len(c._components) == 1
     assert isinstance(c._components[0][1], Circuit) and len(c._components[0][1]._components) == 1
     c0 = c._components[0][1]._components[0][1]
@@ -104,7 +103,7 @@ def test_basic_circuit_double_h():
     qc.h(0)
     qc.h(0)
     pc = convertor.convert(qc)
-    assert pc.source_distribution[StateVector('|1,0>')] == 1
+    assert pc.input_state == FockState('|1,0>')
     assert len(pc.components) == 2
 
 
@@ -113,7 +112,7 @@ def test_basic_circuit_s():
     qc = qiskit.QuantumCircuit(1)
     qc.s(0)
     pc = convertor.convert(qc)
-    assert pc.source_distribution[StateVector('|1,0>')] == 1
+    assert pc.input_state == FockState('|1,0>')
     assert len(pc.components) == 1
     assert isinstance(pc.components[0][1], Circuit) and len(pc.components[0][1]._components) == 1
     r0 = pc.components[0][1]._components[0][0]
@@ -127,7 +126,7 @@ def test_basic_circuit_swap_direct():
     qc = qiskit.QuantumCircuit(2)
     qc.swap(0, 1)
     pc = convertor.convert(qc)
-    assert pc.source_distribution[StateVector('|1,0,1,0>')] == 1
+    assert pc.input_state == FockState('|1,0,1,0>')
     assert len(pc.components) == 1
     r0, c0 = pc.components[0]
     assert r0 == (0, 1, 2, 3)
@@ -140,7 +139,7 @@ def test_basic_circuit_swap_indirect():
     qc = qiskit.QuantumCircuit(2)
     qc.swap(1, 0)
     pc = convertor.convert(qc)
-    assert pc.source_distribution[StateVector('|1,0,1,0>')] == 1
+    assert pc.input_state == FockState('|1,0,1,0>')
     assert len(pc.components) == 1
     r0, c0 = pc.components[0]
     assert r0 == (0, 1, 2, 3)
@@ -168,7 +167,7 @@ def test_cnot_1_heralded():
     pc = convertor.convert(qc, use_postselection=False)
     assert pc.circuit_size == 6
     assert pc.m == 4
-    assert pc.source_distribution[StateVector('|1,0,1,0,1,1>')] == 1
+    assert pc.input_state == FockState('|1,0,1,0,1,1>')
     assert len(pc.components) == 2  # should be BS.H//CNOT
 
 
@@ -180,7 +179,7 @@ def test_cnot_1_inverse_heralded():
     pc = convertor.convert(qc, use_postselection=False)
     assert pc.circuit_size == 6
     assert pc.m == 4
-    assert pc.source_distribution[StateVector('|1,0,1,0,1,1>')] == 1
+    assert pc.input_state == FockState('|1,0,1,0,1,1>')
     assert len(pc.components) == 4
     # should be BS//PERM//CNOT//PERM
     perm1 = pc.components[1][1]
@@ -200,7 +199,7 @@ def test_cnot_2_heralded():
     pc = convertor.convert(qc, use_postselection=False)
     assert pc.circuit_size == 8
     assert pc.m == 6
-    assert pc.source_distribution[StateVector('|1,0,1,0,1,0,1,1>')] == 1
+    assert pc.input_state == FockState('|1,0,1,0,1,0,1,1>')
     assert len(pc.components) == 4
     # should be BS//PERM//CNOT//PERM
     perm1 = pc.components[1][1]
@@ -219,7 +218,7 @@ def test_cnot_1_postprocessed():
     qc.cx(0, 1)
     pc = convertor.convert(qc, use_postselection=True)
     assert pc.circuit_size == 6
-    assert pc.source_distribution[StateVector('|1,0,1,0,0,0>')] == 1
+    assert pc.input_state == FockState('|1,0,1,0,0,0>')
     assert len(pc.components) == 2  # No permutation needed, only H and CNOT components exist in the Processor
     # should be BS//CNOT
 
@@ -230,7 +229,8 @@ def test_cnot_postprocess():
     qc.h(0)
     qc.cx(0, 1)
     pc = convertor.convert(qc, use_postselection=True)
-    bsd_out = pc.probs()['results']
+    computer = SimulatedComputer("SLOS")
+    bsd_out = computer.probs(pc)['results']
     assert len(bsd_out) == 2
 
     qc.h(0)  # We should be able to continue the circuit with 1-qubit gates even with a post-selected CNOT
@@ -244,9 +244,10 @@ def test_cnot_herald():
     qc.h(0)
     qc.cx(0, 1)
     pc = convertor.convert(qc, True)
-    bsd_out = pc.probs()['results']
-    assert bsd_out[BasicState("|1,0,1,0>")] == pytest.approx(0.5)
-    assert bsd_out[BasicState("|0,1,0,1>")] == pytest.approx(0.5)
+    computer = SimulatedComputer("SLOS")
+    bsd_out = computer.probs(pc)['results']
+    assert bsd_out[FockState("|1,0,1,0>")] == pytest.approx(0.5)
+    assert bsd_out[FockState("|0,1,0,1>")] == pytest.approx(0.5)
     assert len(bsd_out) == 2
 
 
@@ -306,7 +307,8 @@ def test_cnot_ppcnot_vs_hcnot_sim():
     converter = QiskitConverter()
     pc = converter.convert(qisk_circ, use_postselection=True)  # converted
 
-    probs_pc = pc.probs()['results']
+    computer = SimulatedComputer("SLOS")
+    probs_pc = computer.probs(pc)['results']
 
     # convert the probs to valid logical states
     num_qubits = 4
@@ -337,10 +339,8 @@ def test_basic_circuit_sdg():
     qc = qiskit.QuantumCircuit(1)
     qc.sdg(0)
     pc = convertor.convert(qc)
-    c = pc.linear_circuit()
-    sd = pc.source_distribution
-    assert len(sd) == 1
-    assert sd[StateVector('|1,0>')] == 1
+    c = pc.unitary_circuit()
+    assert pc.input_state == FockState('|1,0>')
     assert len(c._components) == 1
     assert isinstance(c._components[0][1], Circuit) and len(c._components[0][1]._components) == 1
     assert isinstance(c._components[0][1]._components[0][1], pcvl.PS)
@@ -351,10 +351,8 @@ def test_basic_circuit_tdg():
     qc = qiskit.QuantumCircuit(1)
     qc.tdg(0)
     pc = convertor.convert(qc)
-    c = pc.linear_circuit()
-    sd = pc.source_distribution
-    assert len(sd) == 1
-    assert sd[StateVector('|1,0>')] == 1
+    c = pc.unitary_circuit()
+    assert pc.input_state == FockState('|1,0>')
     assert len(c._components) == 1
     assert isinstance(c._components[0][1], Circuit) and len(c._components[0][1]._components) == 1
     assert isinstance(c._components[0][1]._components[0][1], pcvl.PS)
@@ -379,10 +377,8 @@ def test_random_qiskit_circuit():
     convertor = QiskitConverter()
     pc = convertor.convert(qc)
 
-    c = pc.linear_circuit()
-    sd = pc.source_distribution
-    assert len(sd) == 1
-    assert sd[StateVector('|1,0>')] == 1
+    c = pc.unitary_circuit()
+    assert pc.input_state == FockState('|1,0>')
     assert len(c._components) == 1
     assert isinstance(c._components[0][1], Circuit) and len(c._components[0][1]._components) == 1
     assert isinstance(c._components[0][1]._components[0][1], pcvl.BS)
