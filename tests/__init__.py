@@ -19,20 +19,3 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-try:
-    from .myqlm_converter import MyQLMConverter
-    from .myqlm_helper import MyQLMHelper
-    from .qpu_handler import QuandelaQPUHandler
-    from .myqlm_session import MyQLMSession
-    from .myqlm_communication_layer import MyQLMCommunicationLayer
-
-except ModuleNotFoundError as e:
-    from perceval_interop.utils import MissingDependency
-    if "qat" in str(e):
-        extra_name = "myqlm"
-        MyQLMConverter = MissingDependency("MyQLMConverter", extra_name)
-        MyQLMHelper = MissingDependency("MyQLMHelper", extra_name)
-        QuandelaQPUHandler = MissingDependency("QuandelaQPUHandler", extra_name)
-        MyQLMSession = MissingDependency("MyQLMSession", extra_name)
-    else:
-        raise e

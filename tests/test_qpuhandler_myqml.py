@@ -19,59 +19,23 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-import json
 import os
+import signal
 
 import pytest
-from perceval import RemoteProcessor, Experiment, Matrix, Unitary, BasicState, PayloadGenerator, NoiseModel, \
-    BSDistribution, FockState, ProviderFactory, BSSamples
+from perceval import Experiment, Matrix, Unitary, BasicState, PayloadGenerator, ProviderFactory, BSSamples, \
+    SimulatedComputer, RemoteComputer, ExecutionFactory
 from perceval.algorithm import Sampler
 from perceval.serialization import serialize
+from ._test_utils import assert_bsd_close
 
-from perceval_interop import QuandelaQPUHandler, MyQLMHelper
+from perceval_interop import QuandelaQPUHandler, MyQLMHelper, MyQLMCommunicationLayer
 
 try:
     from qat.core import HardwareSpecs, Job
 except ModuleNotFoundError as e:
     assert e.name == "qat"
     pytest.skip("need `myqlm` module", allow_module_level=True)
-
-
-class _MockRPCHandler:
-
-    JOB_ID = "123"
-
-    def __init__(self):
-        self.name = "sim:test"
-        self.url = "no_url"
-        self.token = "no_token"
-        self.headers = {"Authorization": f"Bearer {self.token}"}
-        self.proxies = {}
-        self._results = BSDistribution({FockState([1, 0]): 1})
-
-    def get_expected_results(self):
-        return self.results
-
-    def create_job(self, payload) -> str:
-        return _MockRPCHandler.JOB_ID
-
-    def get_job_status(self, id: str) -> dict:
-        return {'status': 'completed'}
-
-    def get_job_results(self, id: str) -> dict:
-        return {'results': json.dumps(serialize({"results": self._results}))}
-
-    def fetch_platform_details(self) -> dict:
-        return {"status": "available",
-                "waiting_jobs": 0,
-                "specs": {"name": self.name,
-                          "noise": NoiseModel(0.8),  # Includes something not serializable by MyQML
-                          "available_commands": ["probs"]},
-                "type": "simulator"}
-
-    @property
-    def results(self):
-        return {"results": self._results, "job_id": _MockRPCHandler.JOB_ID, "job_duration": 0}
 
 
 def _test_serialize_deserialize(obj, file_name):
@@ -94,8 +58,8 @@ def _test_serialize_deserialize(obj, file_name):
 
 
 def test_specs():
-    rp = RemoteProcessor(rpc_handler=_MockRPCHandler())
-    handler = QuandelaQPUHandler(rp)
+    comp = SimulatedComputer("SLOS")
+    handler = QuandelaQPUHandler(comp)
 
     specs = handler.get_specs()
     assert isinstance(specs, HardwareSpecs)
@@ -103,10 +67,11 @@ def test_specs():
     _test_serialize_deserialize(specs, "test_specs.hw")
 
     specs = MyQLMHelper.retrieve_specs(specs)
-    assert specs == rp.specs
+    assert specs == comp.specs
 
 
 def test_user_stack():
+    # LEGACY
     # Build your experiment
     exp = Experiment()
     exp.add(0, Unitary(Matrix.random_unitary(8)))
@@ -115,33 +80,39 @@ def test_user_stack():
 
     # First, turn the experiment into a MyQLM serializable Job
     command = "probs"
-    job = MyQLMHelper.make_job(command, exp, max_shots=10_000_000)
+    job = MyQLMHelper.make_job(command, exp)
 
     assert isinstance(job, Job)
 
     full_payload = MyQLMHelper.parse_meta_data(job, MyQLMHelper.PAYLOAD_KEY)
     # Experiments don't define == so we compare the serialized results
-    assert serialize(full_payload, compress=True) == PayloadGenerator.generate_payload(command, exp, max_shots=10_000_000)
+    assert serialize(full_payload, compress=True) == PayloadGenerator.generate_payload(command, exp)
 
     job = _test_serialize_deserialize(job, "test_job.job")
 
     # Assumes the job is now as it will be when given to the remote handler
-    rpc = _MockRPCHandler()
-    rp = RemoteProcessor(rpc_handler=rpc)
-    handler = QuandelaQPUHandler(rp)
+    comp = SimulatedComputer("SLOS")
+    handler = QuandelaQPUHandler(comp)
 
     results = handler.submit_job(job)
 
     results = _test_serialize_deserialize(results, "test_results.res")
 
     perceval_results = MyQLMHelper.retrieve_results(results)
+    assert "details" in perceval_results
+    assert "job_duration" in perceval_results
 
-    assert perceval_results == rpc.get_expected_results()
+    local_results = comp.probs(exp)
+    assert perceval_results["global_perf"] == local_results["global_perf"]
+
+    # Perceval serializes BSDs with a 1e-6 precision
+    assert_bsd_close(perceval_results["results"], local_results["results"], abs=1e-6)
 
 
 def test_session():
-    mock_rp = RemoteProcessor(rpc_handler=_MockRPCHandler())
-    handler = QuandelaQPUHandler(mock_rp)
+    # LEGACY
+    comp = SimulatedComputer("SLOS")
+    handler = QuandelaQPUHandler(comp)
 
     session = ProviderFactory.get_provider("MyQLM", remote_qpu=handler)
 
@@ -158,3 +129,91 @@ def test_session():
     # Check that the Sampler's automatic conversion has been correctly applied
     assert isinstance(perceval_results["results"], BSSamples)
     assert len(perceval_results["results"]) == 1000
+
+
+def test_sigterm_cancels_running_job():
+    class _CancelableJob:
+        def __init__(self):
+            self.cancel_called = False
+
+        def cancel(self):
+            self.cancel_called = True
+
+    handler = QuandelaQPUHandler(SimulatedComputer("SLOS"))
+    running_job = _CancelableJob()
+
+    handler._execution = running_job
+    handler._handle_sigterm(signal.SIGTERM, None)
+
+    assert running_job.cancel_called
+    assert handler._job_cancel_requested
+
+
+def test_stoppable_serve_installs_sigterm_handler(monkeypatch):
+    handler = QuandelaQPUHandler(SimulatedComputer("SLOS"))
+    calls = []
+
+    def _install_sigterm_handler():
+        calls.append("install")
+        return "previous_handler"
+
+    def _restore_sigterm_handler(previous_handler):
+        calls.append(("restore", previous_handler))
+
+    def _serve(self, port, host_ip="localhost", server_type=None, ssl_cert=None, ssl_key=None, ssl_ca=None):
+        calls.append(("serve", port, host_ip, server_type, ssl_cert, ssl_key, ssl_ca))
+        return "served"
+
+    monkeypatch.setattr(handler, "_install_sigterm_handler", _install_sigterm_handler)
+    monkeypatch.setattr(handler, "_restore_sigterm_handler", _restore_sigterm_handler)
+    monkeypatch.setattr(QuandelaQPUHandler.__mro__[1], "serve", _serve)
+
+    assert handler.serve(1234, host_ip="0.0.0.0", server_type="stoppable",
+                         ssl_cert="cert", ssl_key="key", ssl_ca="ca") == "served"
+    assert calls == [
+        "install",
+        ("serve", 1234, "0.0.0.0", "stoppable", "cert", "key", "ca"),
+        ("restore", "previous_handler")
+    ]
+
+
+def test_threaded_serve_is_refused(monkeypatch):
+    handler = QuandelaQPUHandler(SimulatedComputer("SLOS"))
+
+    def _serve(*args, **kwargs):
+        raise AssertionError("Base serve should not be called")
+
+    monkeypatch.setattr(QuandelaQPUHandler.__mro__[1], "serve", _serve)
+
+    with pytest.raises(ValueError, match='server_type="threaded"'):
+        handler.serve(1234, server_type="threaded")
+
+
+def test_communication_layer():
+    computer = SimulatedComputer("SLOS")
+
+    handler = QuandelaQPUHandler(computer)
+    comm_layer = MyQLMCommunicationLayer(handler)
+    remote_computer = RemoteComputer(comm_layer)
+
+    # Command doesn't implement __eq__
+    remote_specs = remote_computer.specs
+    specs = computer.specs
+
+    remote_commands = remote_specs.pop("commands")
+    commands = specs.pop("commands")
+
+    assert str(remote_commands) == str(commands)
+    assert remote_specs == specs
+    assert remote_computer.name == computer.name
+    assert remote_computer.status == computer.status
+    assert remote_computer.type == computer.type
+
+    experiment = Experiment(Unitary.random(8))
+    experiment.with_input(BasicState([1, 0] * 4))
+    experiment.min_detected_photons_filter(2)
+
+    factory = ExecutionFactory(remote_computer, experiment, max_shots_per_call=10_000)
+    results = factory.samples(1000)
+    assert isinstance(results["results"], BSSamples)
+    assert len(results["results"]) == 1000

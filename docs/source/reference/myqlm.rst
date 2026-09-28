@@ -1,11 +1,3 @@
-MyQLMSession
-^^^^^^^^^^^^
-
-.. autoclass:: perceval_interop.myqlm.myqlm_session.MyQLMSession
-   :members:
-   :inherited-members:
-
-
 MyQLMConverter
 ^^^^^^^^^^^^^^
 
@@ -14,10 +6,29 @@ MyQLMConverter
    :inherited-members:
 
 
+MyQLMCommunicationLayer
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: perceval_interop.myqlm.myqlm_communication_layer.MyQLMCommunicationLayer
+   :members:
+   :inherited-members:
+
+
 QuandelaQPUHandler
 ^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: perceval_interop.myqlm.qpu_handler.QuandelaQPUHandler
+   :members:
+   :inherited-members:
+
+
+MyQLMSession
+^^^^^^^^^^^^
+
+.. warning::
+   This class is for the legacy perceval workflow.
+
+.. autoclass:: perceval_interop.myqlm.myqlm_session.MyQLMSession
    :members:
    :inherited-members:
 
