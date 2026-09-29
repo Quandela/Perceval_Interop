@@ -22,7 +22,6 @@
 # SOFTWARE.
 
 import pytest
-from exqalibur import FockState
 
 try:
     import cqasm.v3x as cqasm
@@ -34,7 +33,7 @@ import numpy as np
 from pathlib import Path
 from perceval_interop import (CQASMConverter, ConversionSyntaxError, ConversionUnsupportedFeatureError,
                               ConversionBadVersionError)
-from perceval import BS, BasicState, StateVector
+from perceval import BS, BasicState, FockState, SimulatedComputer
 
 
 def test_converter_version_check():
@@ -85,11 +84,12 @@ CNOT q[0], q[1]
     pc = CQASMConverter().convert(cqasm_program, use_postselection=False)
     assert pc.circuit_size == 6
     assert pc.m == 4
-    assert pc.source_distribution[StateVector('|1,0,1,0,1,1>')] == 1
+    assert pc.input_state == FockState('|1,0,1,0,1,1>')
     assert len(pc.components) == 2
     assert pc.components[0][1].name == "H"
     assert pc.components[1][1].name == "Heralded CNOT"
-    res = pc.probs()['results']
+    computer = SimulatedComputer("SLOS")
+    res = computer.probs(pc)['results']
     assert res[FockState("|0,1,0,1>")] == pytest.approx(0.5)
     assert res[FockState("|1,0,1,0>")] == pytest.approx(0.5)
 
@@ -104,7 +104,7 @@ CNOT q[1], q[0]
     pc = CQASMConverter().convert(cqasm_program, use_postselection=False)
     assert pc.circuit_size == 6
     assert pc.m == 4
-    assert pc.source_distribution[StateVector('|1,0,1,0,1,1>')] == 1
+    assert pc.input_state == FockState('|1,0,1,0,1,1>')
     assert len(pc.components) == 4  # should be  BS.H // PERM // CNOT // PERM
     assert pc.components[0][1].name == "H"
     assert pc.components[1][1].name == "PERM"
@@ -120,12 +120,13 @@ H q[0]
 CNOT q[0], q[1]
 """
     pc = CQASMConverter().convert(cqasm_program, use_postselection=True)
-    bsd_out = pc.probs()['results']
     assert pc.circuit_size == 6
-    assert pc.source_distribution[StateVector('|1,0,1,0,0,0>')] == 1
+    assert pc.input_state == FockState('|1,0,1,0,0,0>')
     assert len(pc.components) == 2
     assert pc.components[0][1].name == "H"
     assert pc.components[1][1].name == "PostProcessed CNOT"
+    computer = SimulatedComputer("SLOS")
+    bsd_out = computer.probs(pc)['results']
     assert len(bsd_out) == 2
 
     cqasm_program = """
@@ -234,7 +235,8 @@ def test_converter_from_file():
     assert len(pc.heralds) == 4
     assert pc.m == 6
     assert len(pc.components) == 12
-    r = pc.probs()['results']
+    computer = SimulatedComputer("SLOS")
+    r = computer.probs(pc)['results']
     assert np.allclose(r[BasicState("|1, 0, 1, 0, 1, 0>")], 0.2, atol=0.01)
     assert np.allclose(r[BasicState("|1, 0, 1, 0, 0, 1>")], 0.2, atol=0.01)
     assert np.allclose(r[BasicState("|1, 0, 0, 1, 1, 0>")], 0.2, atol=0.01)
@@ -355,7 +357,7 @@ qubits 2
 """
     pc = CQASMConverter().convert(source, use_postselection=False)
     assert pc.circuit_size == 4
-    assert pc.source_distribution[StateVector('|1,0,1,0>')] == 1
+    assert pc.input_state == FockState('|1,0,1,0>')
 
 
 def test_converter_multi_target_1qubit():

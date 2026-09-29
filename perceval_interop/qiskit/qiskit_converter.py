@@ -21,18 +21,15 @@
 # SOFTWARE.
 
 from perceval_interop.abstract_converter import AGateConverter
-from perceval import catalog, NoiseModel
+from perceval import catalog
 
 import qiskit
 
 
 class QiskitConverter(AGateConverter):
-    r"""Qiskit quantum circuit to perceval processor converter.
-
-    :param backend_name: backend name used in the converted processor (default SLOS)
-    """
-    def __init__(self, backend_name: str = "SLOS", noise_model: NoiseModel = None):
-        super().__init__(backend_name, noise_model)
+    """Qiskit quantum circuit to perceval experiment converter."""
+    def __init__(self):
+        super().__init__()
 
     def count_qubits(self, gate_circuit) -> int:
         return gate_circuit.qregs[0].size  # number of qubits
