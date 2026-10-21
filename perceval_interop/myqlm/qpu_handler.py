@@ -34,7 +34,7 @@ from qat.core import HardwareSpecs, Job as MyQLMJob, Result as MyQLMResult
 from qat.core.qpu import QPUHandler
 
 from perceval import PayloadGenerator, RemoteComputer, AComputer, Execution, Computation, PayloadUpdater, AProcessor
-from perceval.serialization import Serialization
+from perceval.serialization import Serialization, InputArchive
 from perceval.utils.logging import channel, get_logger
 from requests import HTTPError
 
@@ -89,13 +89,13 @@ class QuandelaQPUHandler(QPUHandler):
     """
 
     _VALID_STATUS = {"available", "computing", "calibration", "running"}
-    _SLEEP_TIME = 1
 
-    def __init__(self, computer: AComputer):
+    def __init__(self, computer: AComputer, sleep_time: float = 1.):
         super().__init__()
         if isinstance(computer, AProcessor):
             computer = computer_from_processor(computer)
         self.computer = computer
+        self._sleep_time = sleep_time
         self._execution: Execution | None = None
         self._cancel_requested = False
         self._previous_sigterm_handler: Callable[[int, FrameType | None], Any] | None = None
@@ -254,7 +254,7 @@ class QuandelaQPUHandler(QPUHandler):
                         self._execution.cancel()
                         raise RuntimeError("Job was canceled due to cancel request")
 
-                    time.sleep(self._SLEEP_TIME)
+                    time.sleep(self._sleep_time)
 
                 pcvl_results = self._execution.get_results()
                 get_logger().debug("Results obtained from the job")
@@ -310,4 +310,15 @@ class QuandelaQPUHandler(QPUHandler):
             raise QPUException(code=ErrorType.ABORT, modulename="QuandelaQPUHandler", message=str(e)) # Error ABORT (code 1) raised when the execution is stopped
 
 
-Serialization.register_class(QuandelaQPUHandler, ["computer", "_execution"], tag="QuandelaQPUHandler")
+
+def read_qpu_handler(handler: QuandelaQPUHandler, archive: InputArchive, members, version: int):
+    objects = {members[i][0]: archive.create(members[i][1]) for i in range(len(members))}
+    handler.__init__(objects["computer"])  # If we don't have _sleep_time (version = 0), the default value is used
+    archive.load_attr(handler, members)
+
+Serialization.register_class(QuandelaQPUHandler,
+                             class_serial_members_write=lambda communication_layer, archive:
+                             archive.save_attr(communication_layer, ["computer", "_execution", "_sleep_time"]),
+                             class_serial_members_read=read_qpu_handler,
+                             version=1,
+                             tag="QuandelaQPUHandler")
